@@ -40,101 +40,166 @@ uart:
           std::string response;
           for (auto c : bytes) {
             if (c >= 32 && c < 127) response += static_cast<char>(c);
-            else if (c == '\r') response += "\\r";
-            else if (c == '\n') response += "\\n";
+            else if (c == '\r') response += "";
+            else if (c == '\n') response += "";
           }
           ESP_LOGI("AC", "RX: %s", response.c_str());
+
+globals:
+  - id: ac_power
+    type: bool
+    initial_value: "false"
+  - id: ac_mode
+    type: int
+    initial_value: "1"
+  - id: ac_fan
+    type: int
+    initial_value: "1"
+  - id: ac_temp
+    type: float
+    initial_value: "21.0"
+  - id: zone1_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone1_open
+    type: bool
+    initial_value: "false"
+  - id: zone1_rf
+    type: int
+    initial_value: "0"
+  - id: zone2_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone2_open
+    type: bool
+    initial_value: "false"
+  - id: zone2_rf
+    type: int
+    initial_value: "0"
+  - id: zone3_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone3_open
+    type: bool
+    initial_value: "false"
+  - id: zone3_rf
+    type: int
+    initial_value: "0"
+  - id: zone7_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone7_open
+    type: bool
+    initial_value: "false"
+  - id: zone7_rf
+    type: int
+    initial_value: "0"
 
 sensor:
   - platform: uptime
     name: "Uptime"
 
   - platform: template
-    name: "Kitchen Signal"
-    id: ac_zone1_signal
-    unit_of_measurement: "%"
-
-  - platform: template
-    name: "Master Signal"
-    id: ac_zone2_signal
-    unit_of_measurement: "%"
-
-  - platform: template
-    name: "Guest Signal"
-    id: ac_zone3_signal
-    unit_of_measurement: "%"
-
-  - platform: template
-    name: "Theatre Signal"
-    id: ac_zone7_signal
-    unit_of_measurement: "%"
-
-  - platform: template
     name: "Kitchen Temperature"
-    id: kitchen_temp
+    id: sensor_kitchen_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
+    lambda: return id(zone1_temp);
+
+  - platform: template
+    name: "Kitchen Signal"
+    id: sensor_kitchen_signal
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone1_rf);
 
   - platform: template
     name: "Master Temperature"
-    id: master_temp
+    id: sensor_master_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
+    lambda: return id(zone2_temp);
+
+  - platform: template
+    name: "Master Signal"
+    id: sensor_master_signal
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone2_rf);
 
   - platform: template
     name: "Guest Temperature"
-    id: guest_temp
+    id: sensor_guest_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
+    lambda: return id(zone3_temp);
+
+  - platform: template
+    name: "Guest Signal"
+    id: sensor_guest_signal
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone3_rf);
 
   - platform: template
     name: "Theatre Temperature"
-    id: theatre_temp
+    id: sensor_theatre_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
+    lambda: return id(zone7_temp);
+
+  - platform: template
+    name: "Theatre Signal"
+    id: sensor_theatre_signal
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone7_rf);
 
 text_sensor:
   - platform: template
     name: "Kitchen Vent"
-    id: ac_zone1_vent
+    id: sensor_kitchen_vent
+    lambda: return id(zone1_open) ? std::string("Open") : std::string("Closed");
 
   - platform: template
     name: "Master Vent"
-    id: ac_zone2_vent
+    id: sensor_master_vent
+    lambda: return id(zone2_open) ? std::string("Open") : std::string("Closed");
 
   - platform: template
     name: "Guest Vent"
-    id: ac_zone3_vent
+    id: sensor_guest_vent
+    lambda: return id(zone3_open) ? std::string("Open") : std::string("Closed");
 
   - platform: template
     name: "Theatre Vent"
-    id: ac_zone7_vent
+    id: sensor_theatre_vent
+    lambda: return id(zone7_open) ? std::string("Open") : std::string("Closed");
 
   - platform: template
     name: "AC Mode"
-    id: ac_mode_text
+    id: sensor_ac_mode
+    lambda: {
+      switch(id(ac_mode)) {
+        case 1: return std::string("Cool");
+        case 2: return std::string("Heat");
+        case 3: return std::string("Fan");
+        default: return std::string("Off");
+      }
+    }
 
   - platform: template
     name: "Fan Speed"
-    id: ac_fan_text
-
-  - platform: template
-    name: "Filter Status"
-    id: ac_filter
-
-binary_sensor:
-  - platform: template
-    name: "Filter"
-    id: ac_filter_2
-
-  - platform: template
-    name: "AC Power"
-    id: ac_power_sensor
+    id: sensor_fan_speed
+    lambda: {
+      switch(id(ac_fan)) {
+        case 1: return std::string("Low");
+        case 2: return std::string("Medium");
+        case 3: return std::string("High");
+        default: return std::string("Auto");
+      }
+    }
 
 switch:
   - platform: template
     name: "AC Power"
-    id: ac_power
+    id: switch_ac_power
     optimistic: true
     on_turn_on:
       - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=XX>");
@@ -169,33 +234,6 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&setting=0</U=ff>");
 
   - platform: template
-    name: "Zone 4"
-    id: switch_zone4
-    optimistic: true
-    on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=1</U=3e>");
-    on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=0</U=3f>");
-
-  - platform: template
-    name: "Zone 5"
-    id: switch_zone5
-    optimistic: true
-    on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=be>");
-    on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=bf>");
-
-  - platform: template
-    name: "Zone 6"
-    id: switch_zone6
-    optimistic: true
-    on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=7e>");
-    on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=7f>");
-
-  - platform: template
     name: "Zone 7"
     id: switch_zone7
     optimistic: true
@@ -211,7 +249,7 @@ cover:
     optimistic: true
     on_open:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=1</U=3e>");
-    on_close:
+    on_closed:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=0</U=3f>");
 
   - platform: template
@@ -220,7 +258,7 @@ cover:
     optimistic: true
     on_open:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=be>");
-    on_close:
+    on_closed:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=bf>");
 
   - platform: template
@@ -229,15 +267,14 @@ cover:
     optimistic: true
     on_open:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=7e>");
-    on_close:
+    on_closed:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=7f>");
 
 select:
   - platform: template
     name: "AC Mode"
-    id: ac_mode
+    id: select_ac_mode
     options:
-      - "Off"
       - "Cool"
       - "Heat"
       - "Fan"
@@ -246,15 +283,14 @@ select:
     set_action:
       - lambda: |-
           int mode = 1;
-          if (x == "Off") mode = 0;
-          else if (x == "Heat") mode = 2;
+          if (x == "Heat") mode = 2;
           else if (x == "Fan") mode = 3;
           std::string cmd = "<U>setSystemData?mode=" + to_string(mode) + "</U=XX>";
           id(rs485_bus).write_str(cmd.c_str());
 
   - platform: template
     name: "Fan Speed"
-    id: fan_speed
+    id: select_fan_speed
     options:
       - "Low"
       - "Medium"
@@ -271,15 +307,12 @@ select:
 
   - platform: template
     name: "MyZone"
-    id: ac_myzone
+    id: select_myzones
     options:
       - "Kitchen"
       - "Master"
       - "Guest"
       - "Theatre"
-      - "Store"
-      - "Study"
-      - "Workroom"
     initial_option: "Kitchen"
     optimistic: true
     set_action:
@@ -288,20 +321,17 @@ select:
           if (x == "Master") zone = 2;
           else if (x == "Guest") zone = 3;
           else if (x == "Theatre") zone = 7;
-          else if (x == "Store") zone = 4;
-          else if (x == "Study") zone = 5;
-          else if (x == "Workroom") zone = 6;
           std::string cmd = "<U>setMyZone?zone=" + to_string(zone) + "</U=XX>";
           id(rs485_bus).write_str(cmd.c_str());
 
 number:
   - platform: template
     name: "Target Temperature"
-    id: target_temp
+    id: number_target_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 22
+    initial_value: 21
     optimistic: true
     set_action:
       - lambda: |-
@@ -313,18 +343,22 @@ button:
     name: "Refresh Status"
     on_press:
       - lambda: |-
+          id(rs485_bus).write_str("<U>Ping</U=db>");
+          delay(10);
           id(rs485_bus).write_str("<U>getSystemData</U=15>");
 
 interval:
   - interval: 30s
     then:
       - lambda: |-
+          id(rs485_bus).write_str("<U>Ping</U=db>");
+          delay(10);
           id(rs485_bus).write_str("<U>getSystemData</U=15>");
           delay(30);
           id(rs485_bus).write_str("<U>getZoneData?zone=1</U=74>");
-          delay(30);
+          delay(20);
           id(rs485_bus).write_str("<U>getZoneData?zone=2</U=36>");
-          delay(30);
-          id(rs485_bus).write_str("<U>getZoneData?zone=3</U=fe>");
-          delay(30);
-          id(rs485_bus).write_str("<U>getZoneData?zone=7</U=79>");
+          delay(20);
+          id(rs485_bus).write_str("<U>getZoneData?zone=3</U=08>");
+          delay(20);
+          id(rs485_bus).write_str("<U>getZoneData?zone=7</U=f0>");
