@@ -91,7 +91,7 @@ uart:
               std::string percent = extract("userPercentSetting");
 
               const char* open_str = "N/A";
-              const char* percent_str = percent.c_str();
+              const char* percent_str = percent.empty() ? "N/A" : percent.c_str();
               switch(zone_id) {
                 case 1:
                   if (!temp.empty()) id(zone1_temp) = atof(temp.c_str());
@@ -110,6 +110,18 @@ uart:
                   if (!setting.empty()) id(zone3_open) = (setting == "1");
                   if (!rf.empty()) id(zone3_rf) = atoi(rf.c_str());
                   open_str = id(zone3_open) ? "YES" : "NO";
+                  break;
+                case 4:
+                  if (!percent.empty()) id(zone4_percent) = atoi(percent.c_str());
+                  percent_str = percent.c_str();
+                  break;
+                case 5:
+                  if (!percent.empty()) id(zone5_percent) = atoi(percent.c_str());
+                  percent_str = percent.c_str();
+                  break;
+                case 6:
+                  if (!percent.empty()) id(zone6_percent) = atoi(percent.c_str());
+                  percent_str = percent.c_str();
                   break;
                 case 7:
                   if (!temp.empty()) id(zone7_temp) = atof(temp.c_str());
