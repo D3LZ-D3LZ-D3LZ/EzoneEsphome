@@ -76,17 +76,18 @@ uart:
             auto zone_start = response.find("<zone");
             if (zone_start != std::string::npos) {
               int zone_id = 0;
-              for (int i = 0; i < 10 && zone_start + 5 + i < response.size(); i++) {
-                char c = response[zone_start + 5 + i];
+              for (int i = 0; i < 20 && zone_start + i < response.size(); i++) {
+                char c = response[zone_start + i];
                 if (c >= '0' && c <= '9') {
                   zone_id = c - '0';
                   break;
                 }
+                if (c == '>') break;
               }
 
               auto extract = [&](const std::string& tag) {
                 auto start = response.find("<" + tag + ">");
-                if (start == std::string::npos) return std::string("");
+                if (start == std::string::npos || start < zone_start) return std::string("");
                 auto end = response.find("</" + tag + ">", start);
                 if (end == std::string::npos) return std::string("");
                 return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
