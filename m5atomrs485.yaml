@@ -85,12 +85,14 @@ uart:
                 if (c == '>') break;
               }
 
-              auto extract = [&](const std::string& tag) {
-                auto start = response.find("<" + tag + ">");
-                if (start == std::string::npos || start < zone_start) return std::string("");
+            auto extract = [&](const std::string& tag) {
+                auto start = response.find("<" + tag + ">", zone_start);
+                if (start == std::string::npos || start > zone_start + 500) return std::string("");
                 auto end = response.find("</" + tag + ">", start);
                 if (end == std::string::npos) return std::string("");
-                return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
+                size_t content_start = start + tag.size() + 2;
+                if (end < content_start) return std::string("");
+                return response.substr(content_start, end - content_start);
               };
 
               std::string temp = extract("actualTemp");
