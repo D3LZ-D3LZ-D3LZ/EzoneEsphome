@@ -90,43 +90,43 @@ uart:
               std::string rf = extract("RFstrength");
               std::string percent = extract("userPercentSetting");
 
+              const char* open_str = "N/A";
+              const char* percent_str = percent.c_str();
               switch(zone_id) {
                 case 1:
                   if (!temp.empty()) id(zone1_temp) = atof(temp.c_str());
                   if (!setting.empty()) id(zone1_open) = (setting == "1");
                   if (!rf.empty()) id(zone1_rf) = atoi(rf.c_str());
+                  open_str = id(zone1_open) ? "YES" : "NO";
                   break;
                 case 2:
                   if (!temp.empty()) id(zone2_temp) = atof(temp.c_str());
                   if (!setting.empty()) id(zone2_open) = (setting == "1");
                   if (!rf.empty()) id(zone2_rf) = atoi(rf.c_str());
+                  open_str = id(zone2_open) ? "YES" : "NO";
                   break;
                 case 3:
                   if (!temp.empty()) id(zone3_temp) = atof(temp.c_str());
                   if (!setting.empty()) id(zone3_open) = (setting == "1");
                   if (!rf.empty()) id(zone3_rf) = atoi(rf.c_str());
+                  open_str = id(zone3_open) ? "YES" : "NO";
                   break;
                 case 7:
                   if (!temp.empty()) id(zone7_temp) = atof(temp.c_str());
                   if (!setting.empty()) id(zone7_open) = (setting == "1");
                   if (!rf.empty()) id(zone7_rf) = atoi(rf.c_str());
+                  open_str = id(zone7_open) ? "YES" : "NO";
                   break;
               }
 
-              if (zone_id >= 4 && zone_id <= 6 && !percent.empty()) {
-                switch(zone_id) {
-                  case 4: id(zone4_percent) = atoi(percent.c_str()); break;
-                  case 5: id(zone5_percent) = atoi(percent.c_str()); break;
-                  case 6: id(zone6_percent) = atoi(percent.c_str()); break;
-                }
-              }
+              float zone_temp = 0.0f;
+              if (zone_id == 1) zone_temp = id(zone1_temp);
+              else if (zone_id == 2) zone_temp = id(zone2_temp);
+              else if (zone_id == 3) zone_temp = id(zone3_temp);
+              else if (zone_id == 7) zone_temp = id(zone7_temp);
 
               ESP_LOGI("AC", "Zone %d: temp=%.1f, open=%s, rf=%s, percent=%s",
-                       zone_id,
-                       zone_id == 1 ? id(zone1_temp) : (zone_id == 2 ? id(zone2_temp) : (zone_id == 3 ? id(zone3_temp) : (zone_id == 7 ? id(zone7_temp) : 0.0f))),
-                       (zone_id == 1 ? (id(zone1_open) ? "YES" : "NO") : (zone_id == 2 ? (id(zone2_open) ? "YES" : "NO") : (zone_id == 3 ? (id(zone3_open) ? "YES" : "NO") : (zone_id == 7 ? (id(zone7_open) ? "YES" : "NO") : "N/A")))).c_str(),
-                       rf.empty() ? "N/A" : rf.c_str(),
-                       percent.empty() ? "N/A" : percent.c_str());
+                       zone_id, zone_temp, open_str, rf.c_str(), percent_str);
             }
           }
 
