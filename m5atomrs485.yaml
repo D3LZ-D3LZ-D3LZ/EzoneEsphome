@@ -416,28 +416,72 @@ cover:
     name: "Store"
     id: cover_store
     optimistic: true
-    assumed_state: true
-    set_position:
+    has_position: true
+    position_action:
       then:
-        - lambda: |
-            int percent = static_cast<int>(x * 100);
-            std::string cmd = "setZoneData?zone=5&userPercentSetting=" + to_string(percent);
-            uint8_t crc = 0;
+        - lambda: |-
+            int percent = static_cast<int>(pos * 100);
+            std::string cmd = "setZoneData?zone=4&userPercentSetting=" + to_string(percent);
+            uint8_t crc = 0xBA;
             for (char c : cmd) {
-              crc ^= (uint8_t)c;
+              crc ^= static_cast<uint8_t>(c);
               for (int i = 0; i < 8; i++) {
-                if (crc & 0x80) crc = (crc << 1) ^ 0x39;
-                else crc <<= 1;
-                crc &= 0xFF;
+                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+                else crc >>= 1;
               }
             }
-            crc = ((crc & 0x0F) << 4) | ((crc & 0xF0) >> 4);
-            crc = ((crc & 0x33) << 2) | ((crc & 0xCC) >> 2);
-            crc = ((crc & 0x55) << 1) | ((crc & 0xAA) >> 1);
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Workroom set_position %.0f%%: %s", x * 100, formatted.c_str());
+            ESP_LOGI("AC", "Store: %s", formatted.c_str());
+            id(rs485_bus).write_str(formatted.c_str());
+
+  - platform: template
+    name: "Workroom"
+    id: cover_workroom
+    optimistic: true
+    has_position: true
+    position_action:
+      then:
+        - lambda: |-
+            int percent = static_cast<int>(pos * 100);
+            std::string cmd = "setZoneData?zone=5&userPercentSetting=" + to_string(percent);
+            uint8_t crc = 0xBA;
+            for (char c : cmd) {
+              crc ^= static_cast<uint8_t>(c);
+              for (int i = 0; i < 8; i++) {
+                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+                else crc >>= 1;
+              }
+            }
+            char crc_str[8];
+            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+            ESP_LOGI("AC", "Workroom: %s", formatted.c_str());
+            id(rs485_bus).write_str(formatted.c_str());
+
+  - platform: template
+    name: "Study"
+    id: cover_study
+    optimistic: true
+    has_position: true
+    position_action:
+      then:
+        - lambda: |-
+            int percent = static_cast<int>(pos * 100);
+            std::string cmd = "setZoneData?zone=6&userPercentSetting=" + to_string(percent);
+            uint8_t crc = 0xBA;
+            for (char c : cmd) {
+              crc ^= static_cast<uint8_t>(c);
+              for (int i = 0; i < 8; i++) {
+                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+                else crc >>= 1;
+              }
+            }
+            char crc_str[8];
+            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+            ESP_LOGI("AC", "Study: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
 
 number:
