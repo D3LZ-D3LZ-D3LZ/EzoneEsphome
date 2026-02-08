@@ -121,14 +121,20 @@ uart:
                   break;
                 case 4:
                   if (!percent.empty()) id(zone4_percent) = atoi(percent.c_str());
+                  if (!setting.empty()) id(zone4_open) = (setting == "1");
+                  open_str = id(zone4_open) ? "YES" : "NO";
                   percent_str = percent.c_str();
                   break;
                 case 5:
                   if (!percent.empty()) id(zone5_percent) = atoi(percent.c_str());
+                  if (!setting.empty()) id(zone5_open) = (setting == "1");
+                  open_str = id(zone5_open) ? "YES" : "NO";
                   percent_str = percent.c_str();
                   break;
                 case 6:
                   if (!percent.empty()) id(zone6_percent) = atoi(percent.c_str());
+                  if (!setting.empty()) id(zone6_open) = (setting == "1");
+                  open_str = id(zone6_open) ? "YES" : "NO";
                   percent_str = percent.c_str();
                   break;
                 case 7:
@@ -208,6 +214,15 @@ globals:
   - id: zone6_percent
     type: int
     initial_value: "30"
+  - id: zone4_open
+    type: bool
+    initial_value: "false"
+  - id: zone5_open
+    type: bool
+    initial_value: "false"
+  - id: zone6_open
+    type: bool
+    initial_value: "false"
 
 sensor:
   - platform: uptime
