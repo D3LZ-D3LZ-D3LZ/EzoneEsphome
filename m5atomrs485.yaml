@@ -575,7 +575,7 @@ number:
     optimistic: true
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
+          std::string cmd = "setZoneData?zone=4&setting=1&userPercentSetting=" + to_string((int)x);
           uint8_t crc = 0;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -601,7 +601,7 @@ number:
     optimistic: true
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
+          std::string cmd = "setZoneData?zone=5&setting=1&userPercentSetting=" + to_string((int)x);
           uint8_t crc = 0;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -627,7 +627,7 @@ number:
     optimistic: true
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=6&userPercentSetting=" + to_string((int)x);
+          std::string cmd = "setZoneData?zone=6&setting=1&userPercentSetting=" + to_string((int)x);
           uint8_t crc = 0;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
