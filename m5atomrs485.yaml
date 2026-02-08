@@ -22,6 +22,10 @@ wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
+external_components:
+  - source: github://D3LZ-D3LZ-D3LZ/EzoneEsphome
+    refresh: 0d
+
 uart:
   id: rs485_bus
   tx_pin: GPIO19
