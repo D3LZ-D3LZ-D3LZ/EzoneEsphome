@@ -363,18 +363,26 @@ switch:
     id: switch_ac_power
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=94>");
+      - lambda: |
+          ESP_LOGI("AC", "Turning AC ON");
+          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=94>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
+      - lambda: |
+          ESP_LOGI("AC", "Turning AC OFF");
+          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
 
   - platform: template
     name: "Zone 1"
     id: switch_zone1
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=1</U=50>");
+      - lambda: |
+          ESP_LOGI("AC", "Turning Zone 1 ON");
+          id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=1</U=50>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=0</U=57>");
+      - lambda: |
+          ESP_LOGI("AC", "Turning Zone 1 OFF");
+          id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=0</U=57>");
 
   - platform: template
     name: "Zone 2"
@@ -580,6 +588,7 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting Store percent to %d: %s", (int)x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
@@ -605,6 +614,7 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting Study percent to %d: %s", (int)x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
@@ -630,6 +640,7 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting Workroom percent to %d: %s", (int)x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
 
 select:
@@ -689,6 +700,7 @@ select:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting fan speed to %s: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
 
 button:
