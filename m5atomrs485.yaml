@@ -85,11 +85,14 @@ uart:
                 if (c == '>') break;
               }
 
+            auto zone_end = response.find("</zone" + std::to_string(zone_id) + ">", zone_start);
+            if (zone_end == std::string::npos) zone_end = zone_start + 500;
+
             auto extract = [&](const std::string& tag) {
                 auto start = response.find("<" + tag + ">", zone_start);
-                if (start == std::string::npos || start > zone_start + 500) return std::string("");
+                if (start == std::string::npos || start > zone_end) return std::string("");
                 auto end = response.find("</" + tag + ">", start);
-                if (end == std::string::npos) return std::string("");
+                if (end == std::string::npos || end > zone_end) return std::string("");
                 size_t content_start = start + tag.size() + 2;
                 if (end < content_start) return std::string("");
                 return response.substr(content_start, end - content_start);
