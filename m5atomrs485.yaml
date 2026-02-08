@@ -426,18 +426,18 @@ cover:
     id: cover_study
     optimistic: true
     on_open:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=2c>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=0d>");
     on_closed:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=2b>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=0a>");
 
   - platform: template
     name: "Workroom"
     id: cover_workroom
     optimistic: true
     on_open:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=0d>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=2c>");
     on_closed:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=0a>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=2b>");
 
 number:
   - platform: template
@@ -620,7 +620,7 @@ number:
     optimistic: true
     set_action:
       - lambda: |
-          std::string cmd1 = "setZoneData?zone=5&setting=1";
+          std::string cmd1 = "setZoneData?zone=6&setting=1";
           uint8_t crc1 = 0;
           for (char c : cmd1) {
             crc1 ^= (uint8_t)c;
@@ -638,7 +638,7 @@ number:
           id(rs485_bus).write_str(formatted1.c_str());
           delay(100);
           
-          std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x) + "&desiredTemp=21.0";
+          std::string cmd2 = "setZoneData?zone=6&userPercentSetting=" + to_string((int)x);
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
@@ -665,7 +665,7 @@ number:
     optimistic: true
     set_action:
       - lambda: |
-          std::string cmd1 = "setZoneData?zone=6&setting=1";
+          std::string cmd1 = "setZoneData?zone=5&setting=1";
           uint8_t crc1 = 0;
           for (char c : cmd1) {
             crc1 ^= (uint8_t)c;
@@ -679,7 +679,11 @@ number:
           snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
           std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
           
-          std::string cmd2 = "setZoneData?zone=6&userPercentSetting=" + to_string((int)x);
+          ESP_LOGI("AC", "Opening Workroom: %s", formatted1.c_str());
+          id(rs485_bus).write_str(formatted1.c_str());
+          delay(100);
+          
+          std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
@@ -693,9 +697,6 @@ number:
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
           
-          ESP_LOGI("AC", "Setting Workroom: opening=%s, percent=%d", formatted1.c_str(), (int)x);
-          id(rs485_bus).write_str(formatted1.c_str());
-          delay(100);
           ESP_LOGI("AC", "Setting Workroom percent to %d: %s", (int)x, formatted2.c_str());
           id(rs485_bus).write_str(formatted2.c_str());
 
