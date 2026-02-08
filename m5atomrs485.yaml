@@ -34,6 +34,101 @@ uart:
   data_bits: 8
   stop_bits: 1
   parity: NONE
+  debug:
+    direction: RX
+    dummy_receiver: true
+    after:
+      timeout: 1000ms
+    sequence:
+      - lambda: |-
+          std::string response;
+          for (auto c : bytes) {
+            if (c >= 32 && c < 127) response += static_cast<char>(c);
+          }
+          ESP_LOGI("AC", "RX: %s", response.c_str());
+
+          if (response.find("<request>getSystemData</request>") != std::string::npos) {
+            auto extract = [&](const std::string& tag) {
+              auto start = response.find("<" + tag + ">");
+              if (start == std::string::npos) return std::string("");
+              auto end = response.find("</" + tag + ">", start);
+              if (end == std::string::npos) return std::string("");
+              return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
+            };
+
+            std::string power = extract("airconOnOff");
+            if (!power.empty()) id(ac_power) = (power == "1");
+
+            std::string mode = extract("mode");
+            if (!mode.empty()) id(ac_mode) = atoi(mode.c_str());
+
+            std::string fan = extract("fanSpeed");
+            if (!fan.empty()) id(ac_fan) = atoi(fan.c_str());
+
+            std::string temp = extract("centralDesiredTemp");
+            if (!temp.empty()) id(ac_temp) = atof(temp.c_str());
+
+            ESP_LOGI("AC", "System: power=%s, mode=%d, fan=%d, temp=%.1f",
+                     id(ac_power) ? "ON" : "OFF", id(ac_mode), id(ac_fan), id(ac_temp));
+          }
+
+          if (response.find("<request>getZoneData</request>") != std::string::npos) {
+            auto zone_pos = response.find("zone");
+            if (zone_pos != std::string::npos && zone_pos + 5 < response.size()) {
+              int zone_id = response[zone_pos + 4] - '0';
+
+              auto extract = [&](const std::string& tag) {
+                auto start = response.find("<" + tag + ">");
+                if (start == std::string::npos) return std::string("");
+                auto end = response.find("</" + tag + ">", start);
+                if (end == std::string::npos) return std::string("");
+                return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
+              };
+
+              std::string temp = extract("actualTemp");
+              std::string setting = extract("setting");
+              std::string rf = extract("RFstrength");
+              std::string percent = extract("userPercentSetting");
+
+              switch(zone_id) {
+                case 1:
+                  if (!temp.empty()) id(zone1_temp) = atof(temp.c_str());
+                  if (!setting.empty()) id(zone1_open) = (setting == "1");
+                  if (!rf.empty()) id(zone1_rf) = atoi(rf.c_str());
+                  break;
+                case 2:
+                  if (!temp.empty()) id(zone2_temp) = atof(temp.c_str());
+                  if (!setting.empty()) id(zone2_open) = (setting == "1");
+                  if (!rf.empty()) id(zone2_rf) = atoi(rf.c_str());
+                  break;
+                case 3:
+                  if (!temp.empty()) id(zone3_temp) = atof(temp.c_str());
+                  if (!setting.empty()) id(zone3_open) = (setting == "1");
+                  if (!rf.empty()) id(zone3_rf) = atoi(rf.c_str());
+                  break;
+                case 7:
+                  if (!temp.empty()) id(zone7_temp) = atof(temp.c_str());
+                  if (!setting.empty()) id(zone7_open) = (setting == "1");
+                  if (!rf.empty()) id(zone7_rf) = atoi(rf.c_str());
+                  break;
+              }
+
+              if (zone_id >= 4 && zone_id <= 6 && !percent.empty()) {
+                switch(zone_id) {
+                  case 4: id(zone4_percent) = atoi(percent.c_str()); break;
+                  case 5: id(zone5_percent) = atoi(percent.c_str()); break;
+                  case 6: id(zone6_percent) = atoi(percent.c_str()); break;
+                }
+              }
+
+              ESP_LOGI("AC", "Zone %d: temp=%.1f, open=%s, rf=%s, percent=%s",
+                       zone_id,
+                       zone_id == 1 ? id(zone1_temp) : (zone_id == 2 ? id(zone2_temp) : (zone_id == 3 ? id(zone3_temp) : (zone_id == 7 ? id(zone7_temp) : 0.0f))),
+                       (zone_id == 1 ? (id(zone1_open) ? "YES" : "NO") : (zone_id == 2 ? (id(zone2_open) ? "YES" : "NO") : (zone_id == 3 ? (id(zone3_open) ? "YES" : "NO") : (zone_id == 7 ? (id(zone7_open) ? "YES" : "NO") : "N/A")))).c_str(),
+                       rf.empty() ? "N/A" : rf.c_str(),
+                       percent.empty() ? "N/A" : percent.c_str());
+            }
+          }
 
 globals:
   - id: ac_power
