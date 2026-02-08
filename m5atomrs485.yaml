@@ -589,7 +589,11 @@ number:
           snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
           std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
           
-          std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
+          ESP_LOGI("AC", "Opening Store: %s", formatted1.c_str());
+          id(rs485_bus).write_str(formatted1.c_str());
+          delay(100);
+          
+          std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x) + "&desiredTemp=21.0";
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
@@ -603,9 +607,6 @@ number:
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
           
-          ESP_LOGI("AC", "Setting Store: opening=%s, percent=%d", formatted1.c_str(), (int)x);
-          id(rs485_bus).write_str(formatted1.c_str());
-          delay(100);
           ESP_LOGI("AC", "Setting Store percent to %d: %s", (int)x, formatted2.c_str());
           id(rs485_bus).write_str(formatted2.c_str());
 
@@ -633,7 +634,11 @@ number:
           snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
           std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
           
-          std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
+          ESP_LOGI("AC", "Opening Study: %s", formatted1.c_str());
+          id(rs485_bus).write_str(formatted1.c_str());
+          delay(100);
+          
+          std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x) + "&desiredTemp=21.0";
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
@@ -647,9 +652,6 @@ number:
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
           
-          ESP_LOGI("AC", "Setting Study: opening=%s, percent=%d", formatted1.c_str(), (int)x);
-          id(rs485_bus).write_str(formatted1.c_str());
-          delay(100);
           ESP_LOGI("AC", "Setting Study percent to %d: %s", (int)x, formatted2.c_str());
           id(rs485_bus).write_str(formatted2.c_str());
 
