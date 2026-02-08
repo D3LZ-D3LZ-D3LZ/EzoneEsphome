@@ -593,16 +593,19 @@ number:
           id(rs485_bus).write_str(formatted1.c_str());
           delay(100);
           
-          std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x) + "&desiredTemp=21.0";
+          std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x07;
+              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x39;
               else crc2 <<= 1;
               crc2 &= 0xFF;
             }
           }
+          crc2 = ((crc2 & 0x0F) << 4) | ((crc2 & 0xF0) >> 4);
+          crc2 = ((crc2 & 0x33) << 2) | ((crc2 & 0xCC) >> 2);
+          crc2 = ((crc2 & 0x55) << 1) | ((crc2 & 0xAA) >> 1);
           char crc2_str[8];
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
@@ -643,11 +646,14 @@ number:
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x07;
+              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x39;
               else crc2 <<= 1;
               crc2 &= 0xFF;
             }
           }
+          crc2 = ((crc2 & 0x0F) << 4) | ((crc2 & 0xF0) >> 4);
+          crc2 = ((crc2 & 0x33) << 2) | ((crc2 & 0xCC) >> 2);
+          crc2 = ((crc2 & 0x55) << 1) | ((crc2 & 0xAA) >> 1);
           char crc2_str[8];
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
@@ -683,16 +689,19 @@ number:
           id(rs485_bus).write_str(formatted1.c_str());
           delay(100);
           
-          std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
+           std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
           uint8_t crc2 = 0;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x07;
+              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x39;
               else crc2 <<= 1;
               crc2 &= 0xFF;
             }
           }
+          crc2 = ((crc2 & 0x0F) << 4) | ((crc2 & 0xF0) >> 4);
+          crc2 = ((crc2 & 0x33) << 2) | ((crc2 & 0xCC) >> 2);
+          crc2 = ((crc2 & 0x55) << 1) | ((crc2 & 0xAA) >> 1);
           char crc2_str[8];
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
