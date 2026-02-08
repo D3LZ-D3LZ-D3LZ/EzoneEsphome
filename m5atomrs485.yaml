@@ -37,6 +37,27 @@ uart:
       timeout: 1000ms
     sequence:
       - lambda: |-
+          auto calc_crc = [&](const std::string& cmd) {
+            uint8_t crc = 0;
+            for (char c : cmd) {
+              crc ^= (uint8_t)c;
+              for (int i = 0; i < 8; i++) {
+                if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+                else crc <<= 1;
+                crc &= 0xFF;
+              }
+            }
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%02x", crc);
+            return std::string(buf);
+          };
+
+          auto send_cmd = [&](const std::string& cmd) {
+            std::string formatted = "<U>" + cmd + "</U=" + calc_crc(cmd) + ">";
+            id(rs485_bus).write_str(formatted.c_str());
+            ESP_LOGI("AC", "TX: %s", formatted.c_str());
+          };
+
           std::string data;
           for (auto c : bytes) {
             if (c >= 32 && c < 127) data += static_cast<char>(c);
@@ -226,6 +247,60 @@ globals:
   - id: response_buffer
     type: std::string
     initial_value: "\"\""
+  - id: request_state
+    type: int
+    initial_value: "0"
+  - id: aa_tx_count
+    type: int
+    initial_value: "0"
+  - id: zone2_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone2_open
+    type: bool
+    initial_value: "false"
+  - id: zone2_rf
+    type: int
+    initial_value: "0"
+  - id: zone3_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone3_open
+    type: bool
+    initial_value: "false"
+  - id: zone3_rf
+    type: int
+    initial_value: "0"
+  - id: zone7_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone7_open
+    type: bool
+    initial_value: "false"
+  - id: zone7_rf
+    type: int
+    initial_value: "0"
+  - id: zone4_percent
+    type: int
+    initial_value: "100"
+  - id: zone4_open
+    type: bool
+    initial_value: "false"
+  - id: zone5_percent
+    type: int
+    initial_value: "100"
+  - id: zone5_open
+    type: bool
+    initial_value: "false"
+  - id: zone6_percent
+    type: int
+    initial_value: "30"
+  - id: zone6_open
+    type: bool
+    initial_value: "false"
+  - id: response_buffer
+    type: std::string
+    initial_value: "\"\""
   - id: awaiting_response
     type: bool
     initial_value: "false"
@@ -359,45 +434,45 @@ switch:
     id: switch_ac_power
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=XX>");
+      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=94>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=XX>");
+      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
 
   - platform: template
     name: "Zone 1"
     id: switch_zone1
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=1</U=b6>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=1</U=50>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=0</U=b7>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&setting=0</U=57>");
 
   - platform: template
     name: "Zone 2"
     id: switch_zone2
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&setting=1</U=36>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&setting=1</U=71>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&setting=0</U=37>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&setting=0</U=76>");
 
   - platform: template
     name: "Zone 3"
     id: switch_zone3
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&setting=1</U=fe>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&setting=1</U=6e>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&setting=0</U=ff>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&setting=0</U=69>");
 
   - platform: template
     name: "Zone 7"
     id: switch_zone7
     optimistic: true
     on_turn_on:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&setting=1</U=79>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&setting=1</U=12>");
     on_turn_off:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&setting=0</U=7a>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&setting=0</U=15>");
 
 cover:
   - platform: template
@@ -405,27 +480,27 @@ cover:
     id: cover_store
     optimistic: true
     on_open:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=1</U=3e>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=1</U=33>");
     on_closed:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=0</U=3f>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&setting=0</U=34>");
 
   - platform: template
     name: "Study"
     id: cover_study
     optimistic: true
     on_open:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=be>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=1</U=2c>");
     on_closed:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=bf>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&setting=0</U=2b>");
 
   - platform: template
     name: "Workroom"
     id: cover_workroom
     optimistic: true
     on_open:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=7e>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=1</U=0d>");
     on_closed:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=7f>");
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=0a>");
 
 number:
   - platform: template
