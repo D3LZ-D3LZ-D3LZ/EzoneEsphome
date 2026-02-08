@@ -73,9 +73,16 @@ uart:
           }
 
           if (response.find("<request>getZoneData</request>") != std::string::npos) {
-            auto zone_pos = response.find("zone");
-            if (zone_pos != std::string::npos && zone_pos + 5 < response.size()) {
-              int zone_id = response[zone_pos + 4] - '0';
+            auto zone_start = response.find("<zone");
+            if (zone_start != std::string::npos) {
+              int zone_id = 0;
+              for (int i = 0; i < 10 && zone_start + 5 + i < response.size(); i++) {
+                char c = response[zone_start + 5 + i];
+                if (c >= '0' && c <= '9') {
+                  zone_id = c - '0';
+                  break;
+                }
+              }
 
               auto extract = [&](const std::string& tag) {
                 auto start = response.find("<" + tag + ">");
