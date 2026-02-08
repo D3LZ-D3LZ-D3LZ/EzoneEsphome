@@ -306,13 +306,13 @@ sensor:
     name: "Study Percentage"
     id: sensor_study_percent
     unit_of_measurement: "%"
-    lambda: return (float)id(zone5_percent);
+    lambda: return (float)id(zone6_percent);
 
   - platform: template
     name: "Workroom Percentage"
     id: sensor_workroom_percent
     unit_of_measurement: "%"
-    lambda: return (float)id(zone6_percent);
+    lambda: return (float)id(zone5_percent);
 
 text_sensor:
   - platform: template
