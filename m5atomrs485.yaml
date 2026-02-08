@@ -3,6 +3,7 @@ esphome:
   friendly_name: Advantage Air AC Controller
 
 esp32:
+  board: m5stack-atom
   variant: ESP32
   framework:
     type: arduino
@@ -37,27 +38,6 @@ uart:
       timeout: 1000ms
     sequence:
       - lambda: |-
-          auto calc_crc = [&](const std::string& cmd) {
-            uint8_t crc = 0;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-                else crc <<= 1;
-                crc &= 0xFF;
-              }
-            }
-            char buf[8];
-            snprintf(buf, sizeof(buf), "%02x", crc);
-            return std::string(buf);
-          };
-
-          auto send_cmd = [&](const std::string& cmd) {
-            std::string formatted = "<U>" + cmd + "</U=" + calc_crc(cmd) + ">";
-            id(rs485_bus).write_str(formatted.c_str());
-            ESP_LOGI("AC", "TX: %s", formatted.c_str());
-          };
-
           std::string data;
           for (auto c : bytes) {
             if (c >= 32 && c < 127) data += static_cast<char>(c);
@@ -250,66 +230,15 @@ globals:
   - id: request_state
     type: int
     initial_value: "0"
-  - id: aa_tx_count
+  - id: aa_cmd_type
     type: int
     initial_value: "0"
-  - id: zone2_temp
+  - id: aa_cmd_value
     type: float
-    initial_value: "0.0"
-  - id: zone2_open
-    type: bool
-    initial_value: "false"
-  - id: zone2_rf
+    initial_value: "21.0"
+  - id: aa_cmd_zone
     type: int
-    initial_value: "0"
-  - id: zone3_temp
-    type: float
-    initial_value: "0.0"
-  - id: zone3_open
-    type: bool
-    initial_value: "false"
-  - id: zone3_rf
-    type: int
-    initial_value: "0"
-  - id: zone7_temp
-    type: float
-    initial_value: "0.0"
-  - id: zone7_open
-    type: bool
-    initial_value: "false"
-  - id: zone7_rf
-    type: int
-    initial_value: "0"
-  - id: zone4_percent
-    type: int
-    initial_value: "100"
-  - id: zone4_open
-    type: bool
-    initial_value: "false"
-  - id: zone5_percent
-    type: int
-    initial_value: "100"
-  - id: zone5_open
-    type: bool
-    initial_value: "false"
-  - id: zone6_percent
-    type: int
-    initial_value: "30"
-  - id: zone6_open
-    type: bool
-    initial_value: "false"
-  - id: response_buffer
-    type: std::string
-    initial_value: "\"\""
-  - id: awaiting_response
-    type: bool
-    initial_value: "false"
-  - id: current_zone
-    type: int
-    initial_value: "0"
-  - id: request_state
-    type: int
-    initial_value: "0"
+    initial_value: "1"
 
 sensor:
   - platform: uptime
@@ -512,7 +441,21 @@ number:
     initial_value: 21
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setSystemData?centralDesiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setSystemData?centralDesiredTemp=" + to_string(x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Kitchen Target"
@@ -523,7 +466,21 @@ number:
     initial_value: 21
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=1&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=1&desiredTemp=" + to_string(x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Master Target"
@@ -534,7 +491,21 @@ number:
     initial_value: 21
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=2&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=2&desiredTemp=" + to_string(x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Guest Target"
@@ -545,7 +516,21 @@ number:
     initial_value: 21
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=3&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=3&desiredTemp=" + to_string(x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Theatre Target"
@@ -556,7 +541,21 @@ number:
     initial_value: 21
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=7&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=7&desiredTemp=" + to_string(x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Store Percentage"
@@ -567,7 +566,21 @@ number:
     initial_value: 100
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=4&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Study Percentage"
@@ -578,7 +591,21 @@ number:
     initial_value: 100
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=5&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=5&userPercentSetting=" + to_string((int)x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Workroom Percentage"
@@ -589,7 +616,21 @@ number:
     initial_value: 30
     optimistic: true
     set_action:
-      - lambda: 'std::string cmd = "<U>setZoneData?zone=6&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+      - lambda: |
+          std::string cmd = "setZoneData?zone=6&userPercentSetting=" + to_string((int)x);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
 select:
   - platform: template
@@ -606,8 +647,20 @@ select:
           int mode = 1;
           if (x == "Heat") mode = 2;
           else if (x == "Fan") mode = 3;
-          std::string cmd = "<U>setSystemData?mode=" + to_string(mode) + "</U=XX>";
-          id(rs485_bus).write_str(cmd.c_str());
+          std::string cmd = "setSystemData?mode=" + to_string(mode);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "Fan Speed"
@@ -623,27 +676,20 @@ select:
           int speed = 1;
           if (x == "Medium") speed = 2;
           else if (x == "High") speed = 3;
-          std::string cmd = "<U>setSystemData?fanSpeed=" + to_string(speed) + "</U=XX>";
-          id(rs485_bus).write_str(cmd.c_str());
-
-  - platform: template
-    name: "MyZone"
-    id: select_myzones
-    options:
-      - "Kitchen"
-      - "Master"
-      - "Guest"
-      - "Theatre"
-    initial_option: "Kitchen"
-    optimistic: true
-    set_action:
-      - lambda: |
-          int zone = 1;
-          if (x == "Master") zone = 2;
-          else if (x == "Guest") zone = 3;
-          else if (x == "Theatre") zone = 7;
-          std::string cmd = "<U>setMyZone?zone=" + to_string(zone) + "</U=XX>";
-          id(rs485_bus).write_str(cmd.c_str());
+          std::string cmd = "setSystemData?fanSpeed=" + to_string(speed);
+          uint8_t crc = 0;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
+              else crc <<= 1;
+              crc &= 0xFF;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
 button:
   - platform: template
