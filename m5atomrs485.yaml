@@ -575,6 +575,8 @@ number:
     optimistic: true
     set_action:
       - lambda: |
+          id(number_store_percent).publish_state(x);
+          
           std::string cmd1 = "setZoneData?zone=4&setting=1";
           uint8_t crc1 = 0;
           for (char c : cmd1) {
@@ -623,6 +625,8 @@ number:
     optimistic: true
     set_action:
       - lambda: |
+          id(number_study_percent).publish_state(x);
+          
           std::string cmd1 = "setZoneData?zone=6&setting=1";
           uint8_t crc1 = 0;
           for (char c : cmd1) {
@@ -671,6 +675,8 @@ number:
     optimistic: true
     set_action:
       - lambda: |
+          id(number_workroom_percent).publish_state(x);
+          
           std::string cmd1 = "setZoneData?zone=5&setting=1";
           uint8_t crc1 = 0;
           for (char c : cmd1) {
