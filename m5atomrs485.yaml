@@ -30,20 +30,6 @@ uart:
   data_bits: 8
   stop_bits: 1
   parity: NONE
-  debug:
-    direction: RX
-    dummy_receiver: true
-    after:
-      timeout: 1000ms
-    sequence:
-      - lambda: |-
-          std::string response;
-          for (auto c : bytes) {
-            if (c >= 32 && c < 127) response += static_cast<char>(c);
-            else if (c == '\r') response += "";
-            else if (c == '\n') response += "";
-          }
-          ESP_LOGI("AC", "RX: %s", response.c_str());
 
 globals:
   - id: ac_power
@@ -94,6 +80,15 @@ globals:
   - id: zone7_rf
     type: int
     initial_value: "0"
+  - id: zone4_percent
+    type: int
+    initial_value: "100"
+  - id: zone5_percent
+    type: int
+    initial_value: "100"
+  - id: zone6_percent
+    type: int
+    initial_value: "30"
 
 sensor:
   - platform: uptime
@@ -151,50 +146,66 @@ sensor:
     unit_of_measurement: "%"
     lambda: return (float)id(zone7_rf);
 
+  - platform: template
+    name: "Store Percentage"
+    id: sensor_store_percent
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone4_percent);
+
+  - platform: template
+    name: "Study Percentage"
+    id: sensor_study_percent
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone5_percent);
+
+  - platform: template
+    name: "Workroom Percentage"
+    id: sensor_workroom_percent
+    unit_of_measurement: "%"
+    lambda: return (float)id(zone6_percent);
+
 text_sensor:
   - platform: template
     name: "Kitchen Vent"
     id: sensor_kitchen_vent
-    lambda: return id(zone1_open) ? std::string("Open") : std::string("Closed");
+    lambda: 'return id(zone1_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "Master Vent"
     id: sensor_master_vent
-    lambda: return id(zone2_open) ? std::string("Open") : std::string("Closed");
+    lambda: 'return id(zone2_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "Guest Vent"
     id: sensor_guest_vent
-    lambda: return id(zone3_open) ? std::string("Open") : std::string("Closed");
+    lambda: 'return id(zone3_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "Theatre Vent"
     id: sensor_theatre_vent
-    lambda: return id(zone7_open) ? std::string("Open") : std::string("Closed");
+    lambda: 'return id(zone7_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "AC Mode"
     id: sensor_ac_mode
-    lambda: {
+    lambda: |
       switch(id(ac_mode)) {
         case 1: return std::string("Cool");
         case 2: return std::string("Heat");
         case 3: return std::string("Fan");
         default: return std::string("Off");
       }
-    }
 
   - platform: template
     name: "Fan Speed"
     id: sensor_fan_speed
-    lambda: {
+    lambda: |
       switch(id(ac_fan)) {
         case 1: return std::string("Low");
         case 2: return std::string("Medium");
         case 3: return std::string("High");
         default: return std::string("Auto");
       }
-    }
 
 switch:
   - platform: template
@@ -270,6 +281,95 @@ cover:
     on_closed:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&setting=0</U=7f>");
 
+number:
+  - platform: template
+    name: "Target Temperature"
+    id: number_target_temp
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    initial_value: 21
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setSystemData?centralDesiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Kitchen Target"
+    id: number_kitchen_temp
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    initial_value: 21
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=1&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Master Target"
+    id: number_master_temp
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    initial_value: 21
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=2&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Guest Target"
+    id: number_guest_temp
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    initial_value: 21
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=3&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Theatre Target"
+    id: number_theatre_temp
+    min_value: 16
+    max_value: 30
+    step: 0.5
+    initial_value: 21
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=7&desiredTemp=" + to_string(x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Store Percentage"
+    id: number_store_percent
+    min_value: 0
+    max_value: 100
+    step: 10
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=4&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Study Percentage"
+    id: number_study_percent
+    min_value: 0
+    max_value: 100
+    step: 10
+    initial_value: 100
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=5&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
+  - platform: template
+    name: "Workroom Percentage"
+    id: number_workroom_percent
+    min_value: 0
+    max_value: 100
+    step: 10
+    initial_value: 30
+    optimistic: true
+    set_action:
+      - lambda: 'std::string cmd = "<U>setZoneData?zone=6&userPercentSetting=" + to_string((int)x) + "</U=XX>"; id(rs485_bus).write_str(cmd.c_str());'
+
 select:
   - platform: template
     name: "AC Mode"
@@ -281,7 +381,7 @@ select:
     initial_option: "Cool"
     optimistic: true
     set_action:
-      - lambda: |-
+      - lambda: |
           int mode = 1;
           if (x == "Heat") mode = 2;
           else if (x == "Fan") mode = 3;
@@ -298,7 +398,7 @@ select:
     initial_option: "Low"
     optimistic: true
     set_action:
-      - lambda: |-
+      - lambda: |
           int speed = 1;
           if (x == "Medium") speed = 2;
           else if (x == "High") speed = 3;
@@ -316,7 +416,7 @@ select:
     initial_option: "Kitchen"
     optimistic: true
     set_action:
-      - lambda: |-
+      - lambda: |
           int zone = 1;
           if (x == "Master") zone = 2;
           else if (x == "Guest") zone = 3;
@@ -324,25 +424,11 @@ select:
           std::string cmd = "<U>setMyZone?zone=" + to_string(zone) + "</U=XX>";
           id(rs485_bus).write_str(cmd.c_str());
 
-number:
-  - platform: template
-    name: "Target Temperature"
-    id: number_target_temp
-    min_value: 16
-    max_value: 30
-    step: 0.5
-    initial_value: 21
-    optimistic: true
-    set_action:
-      - lambda: |-
-          std::string cmd = "<U>setSystemData?centralDesiredTemp=" + to_string(x) + "</U=XX>";
-          id(rs485_bus).write_str(cmd.c_str());
-
 button:
   - platform: template
     name: "Refresh Status"
     on_press:
-      - lambda: |-
+      - lambda: |
           id(rs485_bus).write_str("<U>Ping</U=db>");
           delay(10);
           id(rs485_bus).write_str("<U>getSystemData</U=15>");
@@ -350,7 +436,7 @@ button:
 interval:
   - interval: 30s
     then:
-      - lambda: |-
+      - lambda: |
           id(rs485_bus).write_str("<U>Ping</U=db>");
           delay(10);
           id(rs485_bus).write_str("<U>getSystemData</U=15>");
