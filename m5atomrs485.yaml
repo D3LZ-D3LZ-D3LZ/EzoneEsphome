@@ -76,10 +76,12 @@ uart:
               if (!temp.empty()) id(ac_temp) = atof(temp.c_str());
 
               std::string myzone = extract("unitControlTempsSetting");
-              if (!myzone.empty()) id(ac_myzone) = atoi(myzone.c_str());
+              if (!myzone.empty()) {
+                id(ac_myzone) = atoi(myzone.c_str());
+              }
 
-              ESP_LOGI("AC", "System: power=%s, mode=%d, fan=%d, temp=%.1f",
-                       id(ac_power) ? "ON" : "OFF", id(ac_mode), id(ac_fan), id(ac_temp));
+              ESP_LOGI("AC", "System: power=%s, mode=%d, fan=%d, temp=%.1f, myzone=%d",
+                       id(ac_power) ? "ON" : "OFF", id(ac_mode), id(ac_fan), id(ac_temp), id(ac_myzone));
             }
 
             if (response.find("<request>getZoneData</request>") != std::string::npos) {
@@ -1410,21 +1412,24 @@ select:
           else if (zone == "Zone 5") zone_id = 5;
           else if (zone == "Zone 6") zone_id = 6;
           else if (zone == "Zone 7") zone_id = 7;
-          std::string cmd = "setSystemData?unitControlTempsSetting=" + to_string(zone_id);
-          uint8_t crc = 0;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
-            }
+          // Use hardcoded CRCs from sniffed data
+          std::string cmd;
+          std::string crc_str;
+          switch(zone_id) {
+            case 0: cmd = "setSystemData?unitControlTempsSetting=0"; crc_str = "22"; break;
+            case 1: cmd = "setSystemData?unitControlTempsSetting=1"; crc_str = "1c"; break;
+            case 2: cmd = "setSystemData?unitControlTempsSetting=2"; crc_str = "5e"; break;
+            case 3: cmd = "setSystemData?unitControlTempsSetting=3"; crc_str = "60"; break;
+            case 4: cmd = "setSystemData?unitControlTempsSetting=4"; crc_str = "2b"; break;
+            case 5: cmd = "setSystemData?unitControlTempsSetting=5"; crc_str = "2a"; break;
+            case 6: cmd = "setSystemData?unitControlTempsSetting=6"; crc_str = "25"; break;
+            case 7: cmd = "setSystemData?unitControlTempsSetting=7"; crc_str = "98"; break;
+            default: cmd = ""; crc_str = "00"; break;
           }
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          std::string formatted = "<U>" + cmd + "</U=" + crc_str + ">";
           ESP_LOGI("AC", "Setting MyZone to %s: %s", zone.c_str(), formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(select_myzone).publish_state(x);
 
 button:
   - platform: template
