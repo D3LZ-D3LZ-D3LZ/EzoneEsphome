@@ -558,7 +558,7 @@ cover:
             if (fabs(target - id(cover_master).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
-            int percent = static_cast<int>(pos * 100);
+            int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=2&zoneSetting=1";
             uint8_t crc1 = 0x9B;
@@ -661,7 +661,7 @@ cover:
             if (fabs(target - id(cover_guest).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
-            int percent = static_cast<int>(pos * 100);
+            int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=3&zoneSetting=1";
             uint8_t crc1 = 0x9B;
@@ -764,7 +764,7 @@ cover:
             if (fabs(target - id(cover_theatre).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
-            int percent = static_cast<int>(pos * 100);
+            int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=7&zoneSetting=1";
             uint8_t crc1 = 0x9B;
@@ -870,7 +870,7 @@ cover:
              if (fabs(target - id(cover_store).position) < 0.01) {
                target = (target > 0.5) ? 0.4999 : 0.5001;
              }
-             int percent = static_cast<int>(pos * id(zone4_max));
+              int percent = static_cast<int>(round(pos * id(zone4_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=4&zoneSetting=1";
             uint8_t crc1 = 0x9B;
@@ -976,7 +976,7 @@ cover:
              if (fabs(target - id(cover_workroom).position) < 0.01) {
                target = (target > 0.5) ? 0.4999 : 0.5001;
              }
-             int percent = static_cast<int>(pos * id(zone5_max));
+              int percent = static_cast<int>(round(pos * id(zone5_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=5&zoneSetting=1";
             uint8_t crc1 = 0x9B;
@@ -1087,7 +1087,7 @@ cover:
             if (fabs(target - id(cover_study).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
-            int percent = static_cast<int>(pos * id(zone6_max));
+            int percent = static_cast<int>(round(pos * id(zone6_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=6&zoneSetting=1";
             uint8_t crc1 = 0x9B;
