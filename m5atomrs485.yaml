@@ -8,6 +8,15 @@ esp32:
   framework:
     type: arduino
 
+substitutions:
+  zone1_name: "${zone1_name}"
+  zone2_name: "${zone2_name}"
+  zone3_name: "${zone3_name}"
+  zone4_name: "${zone4_name}"
+  zone5_name: "${zone5_name}"
+  zone6_name: "${zone6_name}"
+  zone7_name: "${zone7_name}"
+
 logger:
   baud_rate: 115200
   level: INFO
@@ -281,93 +290,93 @@ sensor:
     name: "Uptime"
 
   - platform: template
-    name: "Kitchen Temperature"
+    name: "${zone1_name} Temperature"
     id: sensor_kitchen_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone1_temp);
 
   - platform: template
-    name: "Kitchen Signal"
+    name: "${zone1_name} Signal"
     id: sensor_kitchen_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone1_rf);
 
   - platform: template
-    name: "Master Temperature"
+    name: "${zone2_name} Temperature"
     id: sensor_master_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone2_temp);
 
   - platform: template
-    name: "Master Signal"
+    name: "${zone2_name} Signal"
     id: sensor_master_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone2_rf);
 
   - platform: template
-    name: "Guest Temperature"
+    name: "${zone3_name} Temperature"
     id: sensor_guest_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone3_temp);
 
   - platform: template
-    name: "Guest Signal"
+    name: "${zone3_name} Signal"
     id: sensor_guest_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone3_rf);
 
   - platform: template
-    name: "Theatre Temperature"
+    name: "${zone7_name} Temperature"
     id: sensor_theatre_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone7_temp);
 
   - platform: template
-    name: "Theatre Signal"
+    name: "${zone7_name} Signal"
     id: sensor_theatre_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone7_rf);
 
   - platform: template
-    name: "Store Percentage"
+    name: "${zone4_name} Percentage"
     id: sensor_store_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone4_percent);
 
   - platform: template
-    name: "Study Percentage"
+    name: "${zone6_name} Percentage"
     id: sensor_study_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone6_percent);
 
   - platform: template
-    name: "Workroom Percentage"
+    name: "${zone5_name} Percentage"
     id: sensor_workroom_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone5_percent);
 
 text_sensor:
   - platform: template
-    name: "Kitchen Vent"
+    name: "${zone1_name} Vent"
     id: sensor_kitchen_vent
     lambda: 'return id(zone1_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
-    name: "Master Vent"
+    name: "${zone2_name} Vent"
     id: sensor_master_vent
     lambda: 'return id(zone2_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
-    name: "Guest Vent"
+    name: "${zone3_name} Vent"
     id: sensor_guest_vent
     lambda: 'return id(zone3_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
-    name: "Theatre Vent"
+    name: "${zone7_name} Vent"
     id: sensor_theatre_vent
     lambda: 'return id(zone7_open) ? std::string("Open") : std::string("Closed");'
 
@@ -399,13 +408,13 @@ text_sensor:
     lambda: |
       switch(id(ac_myzone)) {
         case 0: return std::string("Off");
-        case 1: return std::string("Zone 1");
-        case 2: return std::string("Zone 2");
-        case 3: return std::string("Zone 3");
-        case 4: return std::string("Zone 4");
-        case 5: return std::string("Zone 5");
-        case 6: return std::string("Zone 6");
-        case 7: return std::string("Zone 7");
+        case 1: return std::string("${zone1_name}");
+        case 2: return std::string("${zone2_name}");
+        case 3: return std::string("${zone3_name}");
+        case 4: return std::string("${zone4_name}");
+        case 5: return std::string("${zone5_name}");
+        case 6: return std::string("${zone6_name}");
+        case 7: return std::string("${zone7_name}");
         default: return std::string("Unknown");
       }
 
@@ -420,7 +429,7 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
 
   - platform: template
-    name: "Zone 1"
+    name: "${zone1_name}"
     id: switch_zone1
     optimistic: false
     turn_on_action:
@@ -429,7 +438,7 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&zoneSetting=0</U=14>");
 
   - platform: template
-    name: "Zone 2"
+    name: "${zone2_name}"
     id: switch_zone2
     optimistic: false
     turn_on_action:
@@ -438,7 +447,7 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&zoneSetting=0</U=20>");
 
   - platform: template
-    name: "Zone 3"
+    name: "${zone3_name}"
     id: switch_zone3
     optimistic: false
     turn_on_action:
@@ -447,7 +456,7 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&zoneSetting=0</U=ef>");
 
   - platform: template
-    name: "Zone 7"
+    name: "${zone7_name}"
     id: switch_zone7
     optimistic: false
     turn_on_action:
@@ -457,7 +466,7 @@ switch:
 
 cover:
   - platform: template
-    name: "Kitchen"
+    name: "${zone1_name}"
     id: cover_kitchen
     optimistic: false
     has_position: true
@@ -520,7 +529,7 @@ cover:
             id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Master"
+    name: "${zone2_name}"
     id: cover_master
     optimistic: false
     has_position: true
@@ -623,7 +632,7 @@ cover:
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
-    name: "Guest"
+    name: "${zone3_name}"
     id: cover_guest
     optimistic: false
     has_position: true
@@ -726,7 +735,7 @@ cover:
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
-    name: "Theatre"
+    name: "${zone7_name}"
     id: cover_theatre
     optimistic: false
     has_position: true
@@ -829,7 +838,7 @@ cover:
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
-    name: "Store"
+    name: "${zone4_name}"
     id: cover_store
     optimistic: false
     has_position: true
@@ -935,7 +944,7 @@ cover:
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
-    name: "Workroom"
+    name: "${zone5_name}"
     id: cover_workroom
     optimistic: false
     has_position: true
@@ -1041,7 +1050,7 @@ cover:
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
-    name: "Study"
+    name: "${zone6_name}"
     id: cover_study
     optimistic: false
     has_position: true
@@ -1177,7 +1186,7 @@ number:
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Kitchen Target"
+    name: "${zone1_name} Target"
     id: number_kitchen_temp
     min_value: 16
     max_value: 30
@@ -1202,7 +1211,7 @@ number:
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Master Target"
+    name: "${zone2_name} Target"
     id: number_master_temp
     min_value: 16
     max_value: 30
@@ -1227,7 +1236,7 @@ number:
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Guest Target"
+    name: "${zone3_name} Target"
     id: number_guest_temp
     min_value: 16
     max_value: 30
@@ -1252,7 +1261,7 @@ number:
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Theatre Target"
+    name: "${zone7_name} Target"
     id: number_theatre_temp
     min_value: 16
     max_value: 30
@@ -1277,7 +1286,7 @@ number:
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
-    name: "Store Percentage"
+    name: "${zone4_name} Percentage"
     id: number_store_percent
     min_value: 0
     max_value: 100
@@ -1392,26 +1401,26 @@ select:
     id: select_myzone
     options:
       - "Off"
-      - "Zone 1"
-      - "Zone 2"
-      - "Zone 3"
-      - "Zone 4"
-      - "Zone 5"
-      - "Zone 6"
-      - "Zone 7"
+      - "${zone1_name}"
+      - "${zone2_name}"
+      - "${zone3_name}"
+      - "${zone4_name}"
+      - "${zone5_name}"
+      - "${zone6_name}"
+      - "${zone7_name}"
     initial_option: "Off"
     optimistic: false
     set_action:
       - lambda: |
           std::string zone = std::string(x);
           int zone_id = 0;
-          if (zone == "Zone 1") zone_id = 1;
-          else if (zone == "Zone 2") zone_id = 2;
-          else if (zone == "Zone 3") zone_id = 3;
-          else if (zone == "Zone 4") zone_id = 4;
-          else if (zone == "Zone 5") zone_id = 5;
-          else if (zone == "Zone 6") zone_id = 6;
-          else if (zone == "Zone 7") zone_id = 7;
+          if (zone == "${zone1_name}") zone_id = 1;
+          else if (zone == "${zone2_name}") zone_id = 2;
+          else if (zone == "${zone3_name}") zone_id = 3;
+          else if (zone == "${zone4_name}") zone_id = 4;
+          else if (zone == "${zone5_name}") zone_id = 5;
+          else if (zone == "${zone6_name}") zone_id = 6;
+          else if (zone == "${zone7_name}") zone_id = 7;
           // Use hardcoded CRCs from sniffed data
           std::string cmd;
           std::string crc_str;
