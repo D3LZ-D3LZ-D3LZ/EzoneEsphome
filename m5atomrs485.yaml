@@ -76,7 +76,7 @@ uart:
                }
 
               std::string mode = extract("mode");
-              if (!mode.empty()) {
+              if (!mode.empty() && millis() - id(last_set_time) > 5000) {
                 id(ac_mode) = atoi(mode.c_str());
                 switch(id(ac_mode)) {
                   case 1: 
@@ -103,7 +103,7 @@ uart:
               }
 
               std::string fan = extract("fanSpeed");
-              if (!fan.empty()) {
+              if (!fan.empty() && millis() - id(last_set_time) > 5000) {
                 id(ac_fan) = atoi(fan.c_str());
                 switch(id(ac_fan)) {
                   case 1: 
@@ -253,6 +253,9 @@ globals:
     initial_value: "21.0"
   - id: ac_myzone
     type: int
+    initial_value: "0"
+  - id: last_set_time
+    type: long
     initial_value: "0"
   - id: zone1_temp
     type: float
@@ -1416,6 +1419,7 @@ select:
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
           ESP_LOGI("AC", "Setting AC mode to %s: %s", x.c_str(), formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(last_set_time) = millis();
 
   - platform: template
     name: "Fan Speed"
@@ -1448,6 +1452,7 @@ select:
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
           ESP_LOGI("AC", "Setting fan speed to %s: %s", mode.c_str(), formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(last_set_time) = millis();
 
   - platform: template
     name: "MyZone"
