@@ -1435,7 +1435,7 @@ select:
           else if (mode == "High") speed = 3;
           else if (mode == "Auto") speed = 4;
           std::string cmd = "setSystemData?fanSpeed=" + to_string(speed);
-          uint8_t crc = 0x40;
+          uint8_t crc = 0x79;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
