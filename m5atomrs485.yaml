@@ -9,13 +9,13 @@ esp32:
     type: arduino
 
 substitutions:
-  zone1_name: "${zone1_name}"
-  zone2_name: "${zone2_name}"
-  zone3_name: "${zone3_name}"
-  zone4_name: "${zone4_name}"
-  zone5_name: "${zone5_name}"
-  zone6_name: "${zone6_name}"
-  zone7_name: "${zone7_name}"
+  zone1_name: "Kitchen"
+  zone2_name: "Master"
+  zone3_name: "Guest"
+  zone4_name: "Store"
+  zone5_name: "Workroom"
+  zone6_name: "Study"
+  zone7_name: "Theatre"
 
 logger:
   baud_rate: 115200
@@ -388,6 +388,7 @@ text_sensor:
         case 1: return std::string("Cool");
         case 2: return std::string("Heat");
         case 3: return std::string("Fan");
+        case 5: return std::string("Dry");
         default: return std::string("Off");
       }
 
@@ -399,6 +400,7 @@ text_sensor:
         case 1: return std::string("Low");
         case 2: return std::string("Medium");
         case 3: return std::string("High");
+        case 4: return std::string("Auto");
         default: return std::string("Unknown");
       }
 
@@ -1343,6 +1345,7 @@ select:
       - "Cool"
       - "Heat"
       - "Fan"
+      - "Dry"
     initial_option: "Cool"
     optimistic: false
     set_action:
@@ -1350,6 +1353,7 @@ select:
           int mode = 1;
           if (x == "Heat") mode = 2;
           else if (x == "Fan") mode = 3;
+          else if (x == "Dry") mode = 5;
           std::string cmd = "setSystemData?mode=" + to_string(mode);
           uint8_t crc = 0;
           for (char c : cmd) {
@@ -1372,6 +1376,7 @@ select:
       - "Low"
       - "Medium"
       - "High"
+      - "Auto"
     initial_option: "Low"
     optimistic: false
     set_action:
@@ -1380,6 +1385,7 @@ select:
           int speed = 1;
           if (mode == "Medium") speed = 2;
           else if (mode == "High") speed = 3;
+          else if (mode == "Auto") speed = 4;
           std::string cmd = "setSystemData?fan=" + to_string(speed);
           uint8_t crc = 0;
           for (char c : cmd) {

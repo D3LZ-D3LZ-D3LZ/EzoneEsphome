@@ -65,43 +65,69 @@ uart:
                 }
               }
 
-              auto extract = [&](const std::string& tag) {
-                auto start = response.find("<" + tag + ">", zone_start);
-                if (start == std::string::npos || start > response.size()) return std::string("");
-                auto end = response.find("</" + tag + ">", start);
-                if (end == std::string::npos || end > response.size()) return std::string("");
-                return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
-              };
-
-              std::string setting = extract("setting");
-              std::string percent = extract("userPercentSetting");
-              std::string temp = extract("desiredTemp");
-
               ESP_LOGI("AC", "=== SET Zone %d ===", zone_id);
-              if (!setting.empty()) ESP_LOGI("AC", "  setting: %s", setting.c_str());
-              if (!percent.empty()) ESP_LOGI("AC", "  userPercentSetting: %s", percent.c_str());
-              if (!temp.empty()) ESP_LOGI("AC", "  desiredTemp: %s", temp.c_str());
+              
+              // Extract and log ALL tags between <request> and </request>
+              size_t tag_start = zone_start;
+              while (tag_start < response.size() && tag_start != std::string::npos) {
+                if (response[tag_start] != '<') {
+                  tag_start++;
+                  continue;
+                }
+                size_t tag_end = response.find(">", tag_start);
+                if (tag_end == std::string::npos) break;
+                
+                std::string tag = response.substr(tag_start + 1, tag_end - tag_start - 1);
+                
+                // Skip tags that are just numbers or structural
+                if (!tag.empty() && tag[0] != '/' && tag.find("request") == std::string::npos && 
+                    tag.find("zone") == std::string::npos && tag.find("iZS") == std::string::npos) {
+                  auto value_start = response.find("<" + tag + ">");
+                  if (value_start != std::string::npos && value_start < response.size()) {
+                    auto value_end = response.find("</" + tag + ">", value_start);
+                    if (value_end != std::string::npos && value_end < response.size()) {
+                      std::string value = response.substr(value_start + tag.size() + 2, value_end - value_start - tag.size() - 2);
+                      ESP_LOGI("AC", "  %s: %s", tag.c_str(), value.c_str());
+                    }
+                  }
+                }
+                tag_start = tag_end + 1;
+              }
             }
 
             if (response.find("<request>setSystemData</request>") != std::string::npos) {
-              auto extract = [&](const std::string& tag) {
-                auto start = response.find("<" + tag + ">");
-                if (start == std::string::npos) return std::string("");
-                auto end = response.find("</" + tag + ">", start);
-                if (end == std::string::npos) return std::string("");
-                return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
-              };
-
-              std::string power = extract("airconOnOff");
-              std::string mode = extract("mode");
-              std::string fan = extract("fanSpeed");
-              std::string temp = extract("centralDesiredTemp");
-
               ESP_LOGI("AC", "=== SET SYSTEM ===");
-              if (!power.empty()) ESP_LOGI("AC", "  power: %s", power.c_str());
-              if (!mode.empty()) ESP_LOGI("AC", "  mode: %s", mode.c_str());
-              if (!fan.empty()) ESP_LOGI("AC", "  fanSpeed: %s", fan.c_str());
-              if (!temp.empty()) ESP_LOGI("AC", "  centralDesiredTemp: %s", temp.c_str());
+              
+              // Extract and log ALL tags between <request> and </request>
+              size_t tag_start = response.find("<request>setSystemData</request>");
+              if (tag_start != std::string::npos) {
+                tag_start += 24; // Skip past <request>setSystemData</request>
+              }
+              
+              while (tag_start < response.size() && tag_start != std::string::npos) {
+                if (response[tag_start] != '<') {
+                  tag_start++;
+                  continue;
+                }
+                size_t tag_end = response.find(">", tag_start);
+                if (tag_end == std::string::npos) break;
+                
+                std::string tag = response.substr(tag_start + 1, tag_end - tag_start - 1);
+                
+                // Skip tags that are just structural
+                if (!tag.empty() && tag[0] != '/' && tag.find("request") == std::string::npos && 
+                    tag.find("iZS") == std::string::npos) {
+                  auto value_start = response.find("<" + tag + ">");
+                  if (value_start != std::string::npos && value_start < response.size()) {
+                    auto value_end = response.find("</" + tag + ">", value_start);
+                    if (value_end != std::string::npos && value_end < response.size()) {
+                      std::string value = response.substr(value_start + tag.size() + 2, value_end - value_start - tag.size() - 2);
+                      ESP_LOGI("AC", "  %s: %s", tag.c_str(), value.c_str());
+                    }
+                  }
+                }
+                tag_start = tag_end + 1;
+              }
             }
           }
 
