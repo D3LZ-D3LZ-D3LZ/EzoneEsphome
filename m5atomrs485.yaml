@@ -76,10 +76,58 @@ uart:
                }
 
               std::string mode = extract("mode");
-               if (!mode.empty()) id(ac_mode) = atoi(mode.c_str());
+              if (!mode.empty()) {
+                id(ac_mode) = atoi(mode.c_str());
+                switch(id(ac_mode)) {
+                  case 1: 
+                    id(sensor_ac_mode).publish_state("Cool"); 
+                    id(select_ac_mode).publish_state("Cool");
+                    break;
+                  case 2: 
+                    id(sensor_ac_mode).publish_state("Heat"); 
+                    id(select_ac_mode).publish_state("Heat");
+                    break;
+                  case 3: 
+                    id(sensor_ac_mode).publish_state("Fan"); 
+                    id(select_ac_mode).publish_state("Fan");
+                    break;
+                  case 5: 
+                    id(sensor_ac_mode).publish_state("Dry"); 
+                    id(select_ac_mode).publish_state("Dry");
+                    break;
+                  default: 
+                    id(sensor_ac_mode).publish_state("Off"); 
+                    id(select_ac_mode).publish_state("Off");
+                    break;
+                }
+              }
 
               std::string fan = extract("fanSpeed");
-              if (!fan.empty()) id(ac_fan) = atoi(fan.c_str());
+              if (!fan.empty()) {
+                id(ac_fan) = atoi(fan.c_str());
+                switch(id(ac_fan)) {
+                  case 1: 
+                    id(sensor_fan_speed).publish_state("Low"); 
+                    id(select_fan_speed).publish_state("Low");
+                    break;
+                  case 2: 
+                    id(sensor_fan_speed).publish_state("Medium"); 
+                    id(select_fan_speed).publish_state("Medium");
+                    break;
+                  case 3: 
+                    id(sensor_fan_speed).publish_state("High"); 
+                    id(select_fan_speed).publish_state("High");
+                    break;
+                  case 4: 
+                    id(sensor_fan_speed).publish_state("Auto"); 
+                    id(select_fan_speed).publish_state("Auto");
+                    break;
+                  default: 
+                    id(sensor_fan_speed).publish_state("Unknown"); 
+                    id(select_fan_speed).publish_state("Unknown");
+                    break;
+                }
+              }
 
               std::string temp = extract("centralDesiredTemp");
               if (!temp.empty()) id(ac_temp) = atof(temp.c_str());
