@@ -76,7 +76,7 @@ uart:
                }
 
               std::string mode = extract("mode");
-              if (!mode.empty()) id(ac_mode) = atoi(mode.c_str());
+               if (!mode.empty()) id(ac_mode) = atoi(mode.c_str());
 
               std::string fan = extract("fanSpeed");
               if (!fan.empty()) id(ac_fan) = atoi(fan.c_str());
@@ -1355,18 +1355,18 @@ select:
           else if (x == "Fan") mode = 3;
           else if (x == "Dry") mode = 5;
           std::string cmd = "setSystemData?mode=" + to_string(mode);
-          uint8_t crc = 0;
+          uint8_t crc = 0x40;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting AC mode to %s: %s", x.c_str(), formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
@@ -1386,14 +1386,13 @@ select:
           if (mode == "Medium") speed = 2;
           else if (mode == "High") speed = 3;
           else if (mode == "Auto") speed = 4;
-          std::string cmd = "setSystemData?fan=" + to_string(speed);
-          uint8_t crc = 0;
+          std::string cmd = "setSystemData?fanSpeed=" + to_string(speed);
+          uint8_t crc = 0x40;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
