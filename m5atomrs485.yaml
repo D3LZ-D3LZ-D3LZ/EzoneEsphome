@@ -1249,13 +1249,12 @@ number:
     set_action:
       - lambda: |
           std::string cmd = "setZoneData?zone=1&desiredTemp=" + to_string(x);
-          uint8_t crc = 0;
+          uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
@@ -1274,13 +1273,12 @@ number:
     set_action:
       - lambda: |
           std::string cmd = "setZoneData?zone=2&desiredTemp=" + to_string(x);
-          uint8_t crc = 0;
+          uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
@@ -1299,13 +1297,12 @@ number:
     set_action:
       - lambda: |
           std::string cmd = "setZoneData?zone=3&desiredTemp=" + to_string(x);
-          uint8_t crc = 0;
+          uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
@@ -1324,13 +1321,12 @@ number:
     set_action:
       - lambda: |
           std::string cmd = "setZoneData?zone=7&desiredTemp=" + to_string(x);
-          uint8_t crc = 0;
+          uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc & 0x80) crc = (crc << 1) ^ 0x07;
-              else crc <<= 1;
-              crc &= 0xFF;
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
             }
           }
           char crc_str[8];
