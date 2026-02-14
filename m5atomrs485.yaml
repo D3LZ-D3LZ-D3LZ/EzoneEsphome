@@ -58,7 +58,9 @@ uart:
             std::string response = id(response_buffer).substr(0, pos + 10);
             id(response_buffer) = id(response_buffer).substr(pos + 10);
 
-            ESP_LOGI("AC", "RX: %s", response.c_str());
+            std::string log_response = response;
+            if (log_response.length() > 500) log_response = log_response.substr(0, 500) + "...";
+            ESP_LOGI("AC", "RX: %s", log_response.c_str());
 
             if (response.find("<request>getSystemData</request>") != std::string::npos) {
               auto extract = [&](const std::string& tag) {
@@ -133,22 +135,13 @@ uart:
               if (!temp.empty() && millis() - id(last_set_time) > 5000) id(ac_temp) = atof(temp.c_str());
 
               std::string myzone = extract("unitControlTempsSetting");
-              ESP_LOGI("AC", "MyZone extract result: '%s'", myzone.c_str());
               if (!myzone.empty()) {
                 int new_myzone = atoi(myzone.c_str());
-                ESP_LOGI("AC", "MyZone raw: %d, last_set: %lu, diff: %lu", new_myzone, id(last_set_time), millis() - id(last_set_time));
-                if (millis() - id(last_set_time) > 5000) {
+                if (millis() - id(last_set_time) > 2000) {
                   id(ac_myzone) = new_myzone;
-                  switch(id(ac_myzone)) {
-                    case 0: id(select_myzone).publish_state("Off"); break;
-                    case 1: id(select_myzone).publish_state("${zone1_name}"); break;
-                    case 2: id(select_myzone).publish_state("${zone2_name}"); break;
-                    case 3: id(select_myzone).publish_state("${zone3_name}"); break;
-                    case 4: id(select_myzone).publish_state("${zone4_name}"); break;
-                    case 5: id(select_myzone).publish_state("${zone5_name}"); break;
-                    case 6: id(select_myzone).publish_state("${zone6_name}"); break;
-                    case 7: id(select_myzone).publish_state("${zone7_name}"); break;
-                  }
+                  auto call = id(select_myzone).make_call();
+                  call.set_index(new_myzone);
+                  call.perform();
                 }
               }
 
@@ -1524,7 +1517,18 @@ select:
       - "${zone5_name}"
       - "${zone6_name}"
       - "${zone7_name}"
-    initial_option: "Off"
+    lambda: |-
+      switch(id(ac_myzone)) {
+        case 0: return std::string("Off");
+        case 1: return std::string("${zone1_name}");
+        case 2: return std::string("${zone2_name}");
+        case 3: return std::string("${zone3_name}");
+        case 4: return std::string("${zone4_name}");
+        case 5: return std::string("${zone5_name}");
+        case 6: return std::string("${zone6_name}");
+        case 7: return std::string("${zone7_name}");
+        default: return std::string("Off");
+      }
     optimistic: false
     set_action:
       - lambda: |
@@ -1556,7 +1560,6 @@ select:
           id(rs485_bus).write_str(formatted.c_str());
           id(ac_myzone) = zone_id;
           id(last_set_time) = millis();
-          id(select_myzone).publish_state(x);
 
 button:
   - platform: template
