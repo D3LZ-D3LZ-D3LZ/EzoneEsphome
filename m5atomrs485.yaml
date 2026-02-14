@@ -130,11 +130,26 @@ uart:
               }
 
               std::string temp = extract("centralDesiredTemp");
-              if (!temp.empty()) id(ac_temp) = atof(temp.c_str());
+              if (!temp.empty() && millis() - id(last_set_time) > 5000) id(ac_temp) = atof(temp.c_str());
 
               std::string myzone = extract("unitControlTempsSetting");
+              ESP_LOGI("AC", "MyZone extract result: '%s'", myzone.c_str());
               if (!myzone.empty()) {
-                id(ac_myzone) = atoi(myzone.c_str());
+                int new_myzone = atoi(myzone.c_str());
+                ESP_LOGI("AC", "MyZone raw: %d, last_set: %lu, diff: %lu", new_myzone, id(last_set_time), millis() - id(last_set_time));
+                if (millis() - id(last_set_time) > 5000) {
+                  id(ac_myzone) = new_myzone;
+                  switch(id(ac_myzone)) {
+                    case 0: id(select_myzone).publish_state("Off"); break;
+                    case 1: id(select_myzone).publish_state("${zone1_name}"); break;
+                    case 2: id(select_myzone).publish_state("${zone2_name}"); break;
+                    case 3: id(select_myzone).publish_state("${zone3_name}"); break;
+                    case 4: id(select_myzone).publish_state("${zone4_name}"); break;
+                    case 5: id(select_myzone).publish_state("${zone5_name}"); break;
+                    case 6: id(select_myzone).publish_state("${zone6_name}"); break;
+                    case 7: id(select_myzone).publish_state("${zone7_name}"); break;
+                  }
+                }
               }
 
               ESP_LOGI("AC", "System: power=%s, mode=%d, fan=%d, temp=%.1f, myzone=%d",
@@ -173,10 +188,14 @@ uart:
               std::string rf = extract("RFstrength");
               std::string percent = extract("userPercentSetting");
               std::string maxDamper = extract("maxDamper");
+              std::string desiredTemp = extract("desiredTemp");
+              
+              ESP_LOGD("AC", "Zone %d: raw desiredTemp extraction: '%s'", zone_id, desiredTemp.c_str());
 
               switch(zone_id) {
                 case 1:
                   if (!temp.empty()) id(zone1_temp) = atof(temp.c_str());
+                  if (!desiredTemp.empty() && millis() - id(last_set_time) > 5000) id(zone1_desired) = atof(desiredTemp.c_str());
                   if (!setting.empty()) {
                     id(zone1_open) = (setting == "1");
                     id(switch_zone1).publish_state(setting == "1");
@@ -185,6 +204,7 @@ uart:
                   break;
                 case 2:
                   if (!temp.empty()) id(zone2_temp) = atof(temp.c_str());
+                  if (!desiredTemp.empty() && millis() - id(last_set_time) > 5000) id(zone2_desired) = atof(desiredTemp.c_str());
                   if (!setting.empty()) {
                     id(zone2_open) = (setting == "1");
                     id(switch_zone2).publish_state(setting == "1");
@@ -193,6 +213,7 @@ uart:
                   break;
                 case 3:
                   if (!temp.empty()) id(zone3_temp) = atof(temp.c_str());
+                  if (!desiredTemp.empty() && millis() - id(last_set_time) > 5000) id(zone3_desired) = atof(desiredTemp.c_str());
                   if (!setting.empty()) {
                     id(zone3_open) = (setting == "1");
                     id(switch_zone3).publish_state(setting == "1");
@@ -216,6 +237,7 @@ uart:
                   break;
                 case 7:
                   if (!temp.empty()) id(zone7_temp) = atof(temp.c_str());
+                  if (!desiredTemp.empty() && millis() - id(last_set_time) > 5000) id(zone7_desired) = atof(desiredTemp.c_str());
                   if (!setting.empty()) {
                     id(zone7_open) = (setting == "1");
                     id(switch_zone7).publish_state(setting == "1");
@@ -228,13 +250,14 @@ uart:
               const char* percent_str = percent.empty() ? "N/A" : percent.c_str();
               const char* rf_str = rf.empty() ? "N/A" : rf.c_str();
               float zone_temp = 0.0f;
-              if (zone_id == 1) zone_temp = id(zone1_temp);
-              else if (zone_id == 2) zone_temp = id(zone2_temp);
-              else if (zone_id == 3) zone_temp = id(zone3_temp);
-              else if (zone_id == 7) zone_temp = id(zone7_temp);
+              float zone_desired = 0.0f;
+              if (zone_id == 1) { zone_temp = id(zone1_temp); zone_desired = id(zone1_desired); }
+              else if (zone_id == 2) { zone_temp = id(zone2_temp); zone_desired = id(zone2_desired); }
+              else if (zone_id == 3) { zone_temp = id(zone3_temp); zone_desired = id(zone3_desired); }
+              else if (zone_id == 7) { zone_temp = id(zone7_temp); zone_desired = id(zone7_desired); }
 
-              ESP_LOGI("AC", "Zone %d: temp=%.1f, open=%s, rf=%s, percent=%s",
-                       zone_id, zone_temp, open_str, rf_str, percent_str);
+              ESP_LOGI("AC", "Zone %d: temp=%.1f, desired=%.1f, open=%s, rf=%s, percent=%s",
+                       zone_id, zone_temp, zone_desired, open_str, rf_str, percent_str);
             }
           }
 
@@ -260,6 +283,9 @@ globals:
   - id: zone1_temp
     type: float
     initial_value: "0.0"
+  - id: zone1_desired
+    type: float
+    initial_value: "0.0"
   - id: zone1_open
     type: bool
     initial_value: "false"
@@ -267,6 +293,9 @@ globals:
     type: int
     initial_value: "0"
   - id: zone2_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone2_desired
     type: float
     initial_value: "0.0"
   - id: zone2_open
@@ -278,6 +307,9 @@ globals:
   - id: zone3_temp
     type: float
     initial_value: "0.0"
+  - id: zone3_desired
+    type: float
+    initial_value: "0.0"
   - id: zone3_open
     type: bool
     initial_value: "false"
@@ -285,6 +317,9 @@ globals:
     type: int
     initial_value: "0"
   - id: zone7_temp
+    type: float
+    initial_value: "0.0"
+  - id: zone7_desired
     type: float
     initial_value: "0.0"
   - id: zone7_open
@@ -342,93 +377,93 @@ sensor:
 
   - platform: template
     name: "${zone1_name} Temperature"
-    id: sensor_kitchen_temp
+    id: sensor_zone1_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone1_temp);
 
   - platform: template
     name: "${zone1_name} Signal"
-    id: sensor_kitchen_signal
+    id: sensor_zone1_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone1_rf);
 
   - platform: template
     name: "${zone2_name} Temperature"
-    id: sensor_master_temp
+    id: sensor_zone2_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone2_temp);
 
   - platform: template
     name: "${zone2_name} Signal"
-    id: sensor_master_signal
+    id: sensor_zone2_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone2_rf);
 
   - platform: template
     name: "${zone3_name} Temperature"
-    id: sensor_guest_temp
+    id: sensor_zone3_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone3_temp);
 
   - platform: template
     name: "${zone3_name} Signal"
-    id: sensor_guest_signal
+    id: sensor_zone3_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone3_rf);
 
   - platform: template
     name: "${zone7_name} Temperature"
-    id: sensor_theatre_temp
+    id: sensor_zone7_temp
     unit_of_measurement: "°C"
     accuracy_decimals: 1
     lambda: return id(zone7_temp);
 
   - platform: template
     name: "${zone7_name} Signal"
-    id: sensor_theatre_signal
+    id: sensor_zone7_signal
     unit_of_measurement: "%"
     lambda: return (float)id(zone7_rf);
 
   - platform: template
     name: "${zone4_name} Percentage"
-    id: sensor_store_percent
+    id: sensor_zone4_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone4_percent);
 
   - platform: template
     name: "${zone6_name} Percentage"
-    id: sensor_study_percent
+    id: sensor_zone6_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone6_percent);
 
   - platform: template
     name: "${zone5_name} Percentage"
-    id: sensor_workroom_percent
+    id: sensor_zone5_percent
     unit_of_measurement: "%"
     lambda: return (float)id(zone5_percent);
 
 text_sensor:
   - platform: template
     name: "${zone1_name} Vent"
-    id: sensor_kitchen_vent
+    id: sensor_zone1_vent
     lambda: 'return id(zone1_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "${zone2_name} Vent"
-    id: sensor_master_vent
+    id: sensor_zone2_vent
     lambda: 'return id(zone2_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "${zone3_name} Vent"
-    id: sensor_guest_vent
+    id: sensor_zone3_vent
     lambda: 'return id(zone3_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
     name: "${zone7_name} Vent"
-    id: sensor_theatre_vent
+    id: sensor_zone7_vent
     lambda: 'return id(zone7_open) ? std::string("Open") : std::string("Closed");'
 
   - platform: template
@@ -520,7 +555,7 @@ switch:
 cover:
   - platform: template
     name: "${zone1_name}"
-    id: cover_kitchen
+    id: cover_zone1
     optimistic: false
     has_position: true
     lambda: |-
@@ -540,7 +575,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Kitchen setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone1 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             std::string cmd2 = "setZoneData?zone=1&userPercentSetting=100";
@@ -555,13 +590,13 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Kitchen: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone1: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Kitchen zoneSetting again: %s", formatted1.c_str());
+             ESP_LOGI("AC", "zone1 zoneSetting again: %s", formatted1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
     close_action:
       then:
@@ -578,12 +613,12 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Kitchen close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone1 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "${zone2_name}"
-    id: cover_master
+    id: cover_zone2
     optimistic: false
     has_position: true
     lambda: |-
@@ -603,7 +638,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Master setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone2 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             std::string cmd2 = "setZoneData?zone=2&userPercentSetting=100";
@@ -618,7 +653,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Master: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone2: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -635,13 +670,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Master close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone2 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-            if (fabs(target - id(cover_master).position) < 0.01) {
+            if (fabs(target - id(cover_zone2).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
@@ -658,7 +693,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Master setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone2 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -675,18 +710,18 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Master: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone2: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Master zoneSetting again: %s CRC=d4", cmd1.c_str());
+             ESP_LOGI("AC", "zone2 zoneSetting again: %s CRC=d4", cmd1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
     name: "${zone3_name}"
-    id: cover_guest
+    id: cover_zone3
     optimistic: false
     has_position: true
     lambda: |-
@@ -706,7 +741,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Guest setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone3 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             std::string cmd2 = "setZoneData?zone=3&userPercentSetting=100";
@@ -721,7 +756,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Guest: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone3: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -738,13 +773,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Guest close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone3 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-            if (fabs(target - id(cover_guest).position) < 0.01) {
+            if (fabs(target - id(cover_zone3).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
@@ -761,7 +796,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Guest setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone3 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -778,18 +813,18 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Guest: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone3: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Guest zoneSetting again: %s CRC=d4", cmd1.c_str());
+             ESP_LOGI("AC", "zone3 zoneSetting again: %s CRC=d4", cmd1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
     name: "${zone7_name}"
-    id: cover_theatre
+    id: cover_zone7
     optimistic: false
     has_position: true
     lambda: |-
@@ -809,7 +844,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Theatre setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone7 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             std::string cmd2 = "setZoneData?zone=7&userPercentSetting=100";
@@ -824,7 +859,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Theatre: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone7: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -841,13 +876,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Theatre close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone7 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-            if (fabs(target - id(cover_theatre).position) < 0.01) {
+            if (fabs(target - id(cover_zone7).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
@@ -864,7 +899,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Theatre setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone7 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -881,18 +916,18 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Theatre: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone7: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Theatre zoneSetting again: %s CRC=d4", cmd1.c_str());
+             ESP_LOGI("AC", "zone7 zoneSetting again: %s CRC=d4", cmd1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
     name: "${zone4_name}"
-    id: cover_store
+    id: cover_zone4
     optimistic: false
     has_position: true
     lambda: |-
@@ -915,7 +950,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Store setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone4 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
              std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string(id(zone4_max));
@@ -930,7 +965,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Store: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone4: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -947,13 +982,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Store close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone4 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-             if (fabs(target - id(cover_store).position) < 0.01) {
+             if (fabs(target - id(cover_zone4).position) < 0.01) {
                target = (target > 0.5) ? 0.4999 : 0.5001;
              }
               int percent = static_cast<int>(round(pos * id(zone4_max) / 5.0)) * 5;
@@ -970,7 +1005,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Store setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone4 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -987,18 +1022,18 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Store: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone4: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Store zoneSetting again: %s CRC=d4", cmd1.c_str());
+             ESP_LOGI("AC", "zone4 zoneSetting again: %s CRC=d4", cmd1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
     name: "${zone5_name}"
-    id: cover_workroom
+    id: cover_zone5
     optimistic: false
     has_position: true
     lambda: |-
@@ -1021,7 +1056,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Workroom setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone5 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
              std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string(id(zone5_max));
@@ -1036,7 +1071,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Workroom: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone5: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -1053,13 +1088,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Workroom close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone5 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-             if (fabs(target - id(cover_workroom).position) < 0.01) {
+             if (fabs(target - id(cover_zone5).position) < 0.01) {
                target = (target > 0.5) ? 0.4999 : 0.5001;
              }
               int percent = static_cast<int>(round(pos * id(zone5_max) / 5.0)) * 5;
@@ -1076,7 +1111,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Workroom setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone5 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -1093,18 +1128,18 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "Workroom: %s", formatted2.c_str());
+             ESP_LOGI("AC", "zone5: %s", formatted2.c_str());
              id(rs485_bus).write_str(formatted2.c_str());
              
              delay(100);
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "Workroom zoneSetting again: %s CRC=d4", cmd1.c_str());
+             ESP_LOGI("AC", "zone5 zoneSetting again: %s CRC=d4", cmd1.c_str());
              id(rs485_bus).write_str(formatted1.c_str());
 
   - platform: template
     name: "${zone6_name}"
-    id: cover_study
+    id: cover_zone6
     optimistic: false
     has_position: true
     lambda: |-
@@ -1127,11 +1162,11 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Study setting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone6 setting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             
-            ESP_LOGI("AC", "Study setting again: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone6 setting again: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             delay(100);
             
@@ -1147,7 +1182,7 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Study: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone6: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
     close_action:
       then:
@@ -1164,13 +1199,13 @@ cover:
             char crc_str[8];
             snprintf(crc_str, sizeof(crc_str), "%02x", crc);
             std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "Study close: %s", formatted.c_str());
+            ESP_LOGI("AC", "zone6 close: %s", formatted.c_str());
             id(rs485_bus).write_str(formatted.c_str());
     position_action:
       then:
         - lambda: |-
             float target = pos;
-            if (fabs(target - id(cover_study).position) < 0.01) {
+            if (fabs(target - id(cover_zone6).position) < 0.01) {
               target = (target > 0.5) ? 0.4999 : 0.5001;
             }
             int percent = static_cast<int>(round(pos * id(zone6_max) / 5.0)) * 5;
@@ -1187,7 +1222,7 @@ cover:
             char crc1_str[8];
             snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
             std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "Study zoneSetting: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone6 zoneSetting: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
             
             delay(100);
@@ -1204,26 +1239,30 @@ cover:
             char crc2_str[8];
             snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
             std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "Study: %s", formatted2.c_str());
+            ESP_LOGI("AC", "zone6: %s", formatted2.c_str());
             id(rs485_bus).write_str(formatted2.c_str());
             
             delay(100);
             
-            ESP_LOGI("AC", "Study zoneSetting again: %s", formatted1.c_str());
+            ESP_LOGI("AC", "zone6 zoneSetting again: %s", formatted1.c_str());
             id(rs485_bus).write_str(formatted1.c_str());
 
 number:
   - platform: template
-    name: "Target Temperature"
-    id: number_target_temp
+    name: "Central Target Temperature"
+    id: central_number_target_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 21
+    lambda: return id(ac_temp);
     optimistic: false
     set_action:
       - lambda: |
-          std::string cmd = "setSystemData?centralDesiredTemp=" + to_string(x);
+          char temp_str[8];
+          snprintf(temp_str, sizeof(temp_str), "%.1f", x);
+          std::string cmd = "setSystemData?centralDesiredTemp=" + std::string(temp_str);
+          id(ac_temp) = x;
+          id(last_set_time) = millis();
           uint8_t crc = 0;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -1237,18 +1276,21 @@ number:
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
           id(rs485_bus).write_str(formatted.c_str());
+          id(central_number_target_temp).publish_state(x);
 
   - platform: template
     name: "${zone1_name} Target"
-    id: number_kitchen_temp
+    id: number_zone1_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 21
+    lambda: return id(zone1_desired);
     optimistic: false
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=1&desiredTemp=" + to_string(x);
+          char temp_str[16];
+          snprintf(temp_str, sizeof(temp_str), "%.1f", x);
+          std::string cmd = std::string("setZoneData?zone=1&desiredTemp=") + temp_str;
           uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -1260,19 +1302,24 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting zone1 temp to %.1f: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
-
+          id(zone1_desired) = x;
+          id(last_set_time) = millis();
+          id(number_zone1_temp).publish_state(x);
   - platform: template
     name: "${zone2_name} Target"
-    id: number_master_temp
+    id: number_zone2_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 21
+    lambda: return id(zone2_desired);
     optimistic: false
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=2&desiredTemp=" + to_string(x);
+          char temp_str[16];
+          snprintf(temp_str, sizeof(temp_str), "%.1f", x);
+          std::string cmd = std::string("setZoneData?zone=2&desiredTemp=") + temp_str;
           uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -1284,19 +1331,25 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting zone2 temp to %.1f: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(zone2_desired) = x;
+          id(last_set_time) = millis();
+          id(number_zone2_temp).publish_state(x);
 
   - platform: template
     name: "${zone3_name} Target"
-    id: number_guest_temp
+    id: number_zone3_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 21
+    lambda: return id(zone3_desired);
     optimistic: false
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=3&desiredTemp=" + to_string(x);
+          char temp_str[16];
+          snprintf(temp_str, sizeof(temp_str), "%.1f", x);
+          std::string cmd = std::string("setZoneData?zone=3&desiredTemp=") + temp_str;
           uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -1308,19 +1361,25 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting Theatre temp to %.1f: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(zone3_desired) = x;
+          id(last_set_time) = millis();
+          id(number_zone3_temp).publish_state(x);
 
   - platform: template
     name: "${zone7_name} Target"
-    id: number_theatre_temp
+    id: number_zone7_temp
     min_value: 16
     max_value: 30
     step: 0.5
-    initial_value: 21
+    lambda: return id(zone7_desired);
     optimistic: false
     set_action:
       - lambda: |
-          std::string cmd = "setZoneData?zone=7&desiredTemp=" + to_string(x);
+          char temp_str[16];
+          snprintf(temp_str, sizeof(temp_str), "%.1f", x);
+          std::string cmd = std::string("setZoneData?zone=7&desiredTemp=") + temp_str;
           uint8_t crc = 0x62;
           for (char c : cmd) {
             crc ^= (uint8_t)c;
@@ -1332,11 +1391,14 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "Setting zone7 temp to %.1f: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
-
+          id(zone7_desired) = x;
+          id(last_set_time) = millis();
+          id(number_zone7_temp).publish_state(x);
   - platform: template
     name: "${zone4_name} Percentage"
-    id: number_store_percent
+    id: number_zone4_percent
     min_value: 0
     max_value: 100
     step: 10
@@ -1344,7 +1406,7 @@ number:
     optimistic: false
     set_action:
       - lambda: |
-          id(number_store_percent).publish_state(x);
+          id(number_zone4_percent).publish_state(x);
           
           std::string cmd1 = "setZoneData?zone=4&zoneSetting=1";
           uint8_t crc1 = 0x9B;
@@ -1360,7 +1422,7 @@ number:
           snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
           std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
           
-          ESP_LOGI("AC", "Opening Store: %s", formatted1.c_str());
+          ESP_LOGI("AC", "Opening zone4: %s", formatted1.c_str());
           id(rs485_bus).write_str(formatted1.c_str());
           delay(100);
           
@@ -1381,7 +1443,7 @@ number:
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
           
-          ESP_LOGI("AC", "Setting Store percent to %d: %s", (int)x, formatted2.c_str());
+          ESP_LOGI("AC", "Setting zone4 percent to %d: %s", (int)x, formatted2.c_str());
           id(rs485_bus).write_str(formatted2.c_str());
 
 select:
@@ -1492,6 +1554,8 @@ select:
           std::string formatted = "<U>" + cmd + "</U=" + crc_str + ">";
           ESP_LOGI("AC", "Setting MyZone to %s: %s", zone.c_str(), formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
+          id(ac_myzone) = zone_id;
+          id(last_set_time) = millis();
           id(select_myzone).publish_state(x);
 
 button:
