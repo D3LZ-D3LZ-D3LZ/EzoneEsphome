@@ -16,14 +16,14 @@ ESPHome configuration for controlling Advantage Air AC systems using M5Stack ATO
 
 ### RS485 to AC Controller
 
-| RS485 Base Pin | Function | AC Controller Pin |
-|---------------|----------|-------------------|
-| 1 (B/-)      | RS422 -/A | Zone 1 |
-| 2 (A/+)      | RS422 +/B | Zone 2 |
-| 4 (GND)      | Ground    | GND |
-| 5 (DC)       | Power     | ~14.2V DC (unloaded) |
-| 6 (GND)      | Ground    | GND |
-| Shield        | Ground    | GND |
+| Pin | Function |
+|-----|----------|
+| 1 | RS422 +/B |
+| 2 | RS422 -/A |
+| 4 | GND |
+| 5 | ~14.2V DC (unloaded) |
+
+> **Note**: DC voltage may vary depending on the AC controller model. Check your controller's specifications.
 
 ### M5Stack ATOM Pinout
 
