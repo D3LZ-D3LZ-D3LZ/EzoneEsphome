@@ -1,6 +1,10 @@
 esphome:
   name: m5atom-advantage-air
   friendly_name: Advantage Air AC Controller
+  on_boot:
+    priority: 100
+    then:
+      - lambda: id(request_state) = 0;
 
 esp32:
   board: m5stack-atom
@@ -59,10 +63,12 @@ uart:
             id(response_buffer) = id(response_buffer).substr(pos + 10);
 
             std::string log_response = response;
-            if (log_response.length() > 500) log_response = log_response.substr(0, 500) + "...";
+            if (log_response.length() > 800) log_response = log_response.substr(0, 800) + "...";
             ESP_LOGI("AC", "RX: %s", log_response.c_str());
 
-            if (response.find("<request>getSystemData</request>") != std::string::npos) {
+            if (response.find("getSystemData") != std::string::npos) {
+              id(debug_system_response) = response;
+              
               auto extract = [&](const std::string& tag) {
                 auto start = response.find("<" + tag + ">");
                 if (start == std::string::npos) return std::string("");
@@ -70,7 +76,7 @@ uart:
                 if (end == std::string::npos) return std::string("");
                 return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
               };
-
+              
                std::string power = extract("airconOnOff");
                if (!power.empty()) {
                  id(ac_power) = (power == "1");
@@ -82,24 +88,19 @@ uart:
                 id(ac_mode) = atoi(mode.c_str());
                 switch(id(ac_mode)) {
                   case 1: 
-                    id(sensor_ac_mode).publish_state("Cool"); 
                     id(select_ac_mode).publish_state("Cool");
                     break;
                   case 2: 
-                    id(sensor_ac_mode).publish_state("Heat"); 
                     id(select_ac_mode).publish_state("Heat");
                     break;
                   case 3: 
-                    id(sensor_ac_mode).publish_state("Fan"); 
                     id(select_ac_mode).publish_state("Fan");
                     break;
                   case 5: 
-                    id(sensor_ac_mode).publish_state("Dry"); 
                     id(select_ac_mode).publish_state("Dry");
                     break;
                   default: 
-                    id(sensor_ac_mode).publish_state("Off"); 
-                    id(select_ac_mode).publish_state("Off");
+                    id(select_ac_mode).publish_state("Cool");
                     break;
                 }
               }
@@ -109,24 +110,19 @@ uart:
                 id(ac_fan) = atoi(fan.c_str());
                 switch(id(ac_fan)) {
                   case 1: 
-                    id(sensor_fan_speed).publish_state("Low"); 
                     id(select_fan_speed).publish_state("Low");
                     break;
                   case 2: 
-                    id(sensor_fan_speed).publish_state("Medium"); 
                     id(select_fan_speed).publish_state("Medium");
                     break;
                   case 3: 
-                    id(sensor_fan_speed).publish_state("High"); 
                     id(select_fan_speed).publish_state("High");
                     break;
                   case 4: 
-                    id(sensor_fan_speed).publish_state("Auto"); 
                     id(select_fan_speed).publish_state("Auto");
                     break;
                   default: 
-                    id(sensor_fan_speed).publish_state("Unknown"); 
-                    id(select_fan_speed).publish_state("Unknown");
+                    id(select_fan_speed).publish_state("Low");
                     break;
                 }
               }
@@ -137,12 +133,22 @@ uart:
               std::string myzone = extract("unitControlTempsSetting");
               if (!myzone.empty()) {
                 int new_myzone = atoi(myzone.c_str());
-                if (millis() - id(last_set_time) > 2000) {
-                  id(ac_myzone) = new_myzone;
-                  auto call = id(select_myzone).make_call();
-                  call.set_index(new_myzone);
-                  call.perform();
+                id(ac_myzone) = new_myzone;
+                
+                // Publish to select component so UI updates
+                std::string zone_name;
+                switch(new_myzone) {
+                  case 0: zone_name = "Off"; break;
+                  case 1: zone_name = "${zone1_name}"; break;
+                  case 2: zone_name = "${zone2_name}"; break;
+                  case 3: zone_name = "${zone3_name}"; break;
+                  case 4: zone_name = "${zone4_name}"; break;
+                  case 5: zone_name = "${zone5_name}"; break;
+                  case 6: zone_name = "${zone6_name}"; break;
+                  case 7: zone_name = "${zone7_name}"; break;
+                  default: zone_name = "Off"; break;
                 }
+                id(select_myzone).publish_state(zone_name);
               }
 
               ESP_LOGI("AC", "System: power=%s, mode=%d, fan=%d, temp=%.1f, myzone=%d",
@@ -363,6 +369,9 @@ globals:
   - id: aa_cmd_zone
     type: int
     initial_value: "1"
+  - id: debug_system_response
+    type: std::string
+    initial_value: "\"\""
 
 sensor:
   - platform: uptime
@@ -440,26 +449,6 @@ sensor:
 
 text_sensor:
   - platform: template
-    name: "${zone1_name} Vent"
-    id: sensor_zone1_vent
-    lambda: 'return id(zone1_open) ? std::string("Open") : std::string("Closed");'
-
-  - platform: template
-    name: "${zone2_name} Vent"
-    id: sensor_zone2_vent
-    lambda: 'return id(zone2_open) ? std::string("Open") : std::string("Closed");'
-
-  - platform: template
-    name: "${zone3_name} Vent"
-    id: sensor_zone3_vent
-    lambda: 'return id(zone3_open) ? std::string("Open") : std::string("Closed");'
-
-  - platform: template
-    name: "${zone7_name} Vent"
-    id: sensor_zone7_vent
-    lambda: 'return id(zone7_open) ? std::string("Open") : std::string("Closed");'
-
-  - platform: template
     name: "AC Mode"
     id: sensor_ac_mode
     lambda: |
@@ -498,6 +487,31 @@ text_sensor:
         case 7: return std::string("${zone7_name}");
         default: return std::string("Unknown");
       }
+
+  - platform: template
+    name: "${zone1_name} Vent"
+    id: sensor_zone1_vent
+    lambda: 'return id(zone1_open) ? std::string("Open") : std::string("Closed");'
+
+  - platform: template
+    name: "${zone2_name} Vent"
+    id: sensor_zone2_vent
+    lambda: 'return id(zone2_open) ? std::string("Open") : std::string("Closed");'
+
+  - platform: template
+    name: "${zone3_name} Vent"
+    id: sensor_zone3_vent
+    lambda: 'return id(zone3_open) ? std::string("Open") : std::string("Closed");'
+
+  - platform: template
+    name: "${zone7_name} Vent"
+    id: sensor_zone7_vent
+    lambda: 'return id(zone7_open) ? std::string("Open") : std::string("Closed");'
+
+  - platform: template
+    name: "Debug System Response"
+    id: sensor_debug_system
+    lambda: return id(debug_system_response);
 
 switch:
   - platform: template
@@ -544,6 +558,33 @@ switch:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&zoneSetting=1</U=42>");
     turn_off_action:
       - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&zoneSetting=0</U=7c>");
+
+  - platform: template
+    name: "${zone4_name}"
+    id: switch_zone4
+    optimistic: false
+    turn_on_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&zoneSetting=1</U=31>");
+    turn_off_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&zoneSetting=0</U=17>");
+
+  - platform: template
+    name: "${zone5_name}"
+    id: switch_zone5
+    optimistic: false
+    turn_on_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&zoneSetting=1</U=7e>");
+    turn_off_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&zoneSetting=0</U=58>");
+
+  - platform: template
+    name: "${zone6_name}"
+    id: switch_zone6
+    optimistic: false
+    turn_on_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&zoneSetting=1</U=7f>");
+    turn_off_action:
+      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&zoneSetting=0</U=59>");
 
 cover:
   - platform: template
@@ -1300,6 +1341,7 @@ number:
           id(zone1_desired) = x;
           id(last_set_time) = millis();
           id(number_zone1_temp).publish_state(x);
+
   - platform: template
     name: "${zone2_name} Target"
     id: number_zone2_temp
@@ -1354,7 +1396,7 @@ number:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting Theatre temp to %.1f: %s", x, formatted.c_str());
+          ESP_LOGI("AC", "Setting zone3 temp to %.1f: %s", x, formatted.c_str());
           id(rs485_bus).write_str(formatted.c_str());
           id(zone3_desired) = x;
           id(last_set_time) = millis();
@@ -1389,6 +1431,7 @@ number:
           id(zone7_desired) = x;
           id(last_set_time) = millis();
           id(number_zone7_temp).publish_state(x);
+
   - platform: template
     name: "${zone4_name} Percentage"
     id: number_zone4_percent
