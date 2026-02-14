@@ -2,6 +2,11 @@
 
 ESPHome configuration for controlling Advantage Air AC systems using M5Stack ATOM with RS485.
 
+## Related Resources
+
+- [Advantage Air Ezone Tablet DIY Repair](https://blog.hopefullyuseful.com/blog/advantage-air-ezone-tablet-diy-repair/)
+- [Discussion on Hacker News](https://news.ycombinator.com/item?id=41387108)
+
 ## Hardware
 
 - **Controller**: M5Stack ATOM (ESP32)
