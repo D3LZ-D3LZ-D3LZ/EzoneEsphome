@@ -221,17 +221,26 @@ uart:
                   break;
                 case 4:
                   if (!percent.empty()) id(zone4_percent) = atoi(percent.c_str());
-                  if (!setting.empty()) id(zone4_open) = (setting == "1");
+                  if (!setting.empty()) {
+                    id(zone4_open) = (setting == "1");
+                    id(switch_zone4).publish_state(setting == "1");
+                  }
                   if (!maxDamper.empty()) id(zone4_max) = atoi(maxDamper.c_str());
                   break;
                 case 5:
                   if (!percent.empty()) id(zone5_percent) = atoi(percent.c_str());
-                  if (!setting.empty()) id(zone5_open) = (setting == "1");
+                  if (!setting.empty()) {
+                    id(zone5_open) = (setting == "1");
+                    id(switch_zone5).publish_state(setting == "1");
+                  }
                   if (!maxDamper.empty()) id(zone5_max) = atoi(maxDamper.c_str());
                   break;
                 case 6:
                   if (!percent.empty()) id(zone6_percent) = atoi(percent.c_str());
-                  if (!setting.empty()) id(zone6_open) = (setting == "1");
+                  if (!setting.empty()) {
+                    id(zone6_open) = (setting == "1");
+                    id(switch_zone6).publish_state(setting == "1");
+                  }
                   if (!maxDamper.empty()) id(zone6_max) = atoi(maxDamper.c_str());
                   break;
                 case 7:
