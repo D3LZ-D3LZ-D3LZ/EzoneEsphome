@@ -23,7 +23,7 @@ ESPHome configuration for controlling Advantage Air AC systems using M5Stack ATO
 | 4 | GND |
 | 5 | ~14.2V DC (unloaded) |
 
-> **Note**: DC voltage may vary depending on the AC controller model. Check your controller's specifications.
+> **Note**: Pinout may vary depending on the AC controller model. Check your controller's specifications.
 
 ### M5Stack ATOM Pinout
 
