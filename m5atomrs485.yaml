@@ -45,7 +45,7 @@ uart:
   stop_bits: 1
   parity: NONE
   debug:
-    direction: RX
+    direction: BOTH
     dummy_receiver: true
     after:
       timeout: 1000ms
@@ -537,64 +537,245 @@ switch:
     id: switch_zone1
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&zoneSetting=1</U=2a>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=1&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=1&zoneSetting=0</U=14>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=1&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "${zone2_name}"
     id: switch_zone2
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&zoneSetting=1</U=1e>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=2&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=2&zoneSetting=0</U=20>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=2&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "${zone3_name}"
     id: switch_zone3
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&zoneSetting=1</U=d1>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=3&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=3&zoneSetting=0</U=ef>");
-
-  - platform: template
-    name: "${zone7_name}"
-    id: switch_zone7
-    optimistic: false
-    turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&zoneSetting=1</U=42>");
-    turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=7&zoneSetting=0</U=7c>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=3&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "${zone4_name}"
     id: switch_zone4
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&zoneSetting=1</U=31>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=4&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=4&zoneSetting=0</U=17>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=4&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 
   - platform: template
     name: "${zone5_name}"
     id: switch_zone5
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&zoneSetting=1</U=7e>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=5&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=5&zoneSetting=0</U=58>");
-
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=5&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
+  
   - platform: template
     name: "${zone6_name}"
     id: switch_zone6
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&zoneSetting=1</U=7f>");
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=6&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setZoneData?zone=6&zoneSetting=0</U=59>");
-
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=6&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
+ 
+  - platform: template
+    name: "${zone7_name}"
+    id: switch_zone7
+    optimistic: false
+    turn_on_action:
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=7&zoneSetting=1";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
+    turn_off_action:
+      - lambda: |-
+          std::string cmd = "setZoneData?zone=7&zoneSetting=0";
+          uint8_t crc = 0x9B;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          id(rs485_bus).write_str(formatted.c_str());
 cover:
   - platform: template
     name: "${zone1_name}"
