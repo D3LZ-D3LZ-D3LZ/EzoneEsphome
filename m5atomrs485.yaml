@@ -77,11 +77,11 @@ uart:
                 return response.substr(start + tag.size() + 2, end - start - tag.size() - 2);
               };
               
-               std::string power = extract("airconOnOff");
-               if (!power.empty()) {
-                 id(ac_power) = (power == "1");
-                 id(switch_ac_power).publish_state(power == "1");
-               }
+                std::string power = extract("airconOnOff");
+                if (!power.empty() && millis() - id(last_set_time) > 5000) {
+                  id(ac_power) = (power == "1");
+                  id(switch_ac_power).publish_state(power == "1");
+                }
 
               std::string mode = extract("mode");
               if (!mode.empty() && millis() - id(last_set_time) > 5000) {
@@ -528,9 +528,15 @@ switch:
     id: switch_ac_power
     optimistic: false
     turn_on_action:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=94>");
+      - lambda: |-
+          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=94>");
+          id(ac_power) = true;
+          id(last_set_time) = millis();
     turn_off_action:
-      - lambda: id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
+      - lambda: |-
+          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=93>");
+          id(ac_power) = false;
+          id(last_set_time) = millis();
 
   - platform: template
     name: "${zone1_name}"
@@ -1639,9 +1645,8 @@ number:
           for (char c : cmd1) {
             crc1 ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc1 & 0x80) crc1 = (crc1 << 1) ^ 0x07;
-              else crc1 <<= 1;
-              crc1 &= 0xFF;
+              if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
+              else crc1 >>= 1;
             }
           }
           char crc1_str[8];
@@ -1653,18 +1658,14 @@ number:
           delay(100);
           
           std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
-          uint8_t crc2 = 0;
+          uint8_t crc2 = 0xBA;
           for (char c : cmd2) {
             crc2 ^= (uint8_t)c;
             for (int i = 0; i < 8; i++) {
-              if (crc2 & 0x80) crc2 = (crc2 << 1) ^ 0x39;
-              else crc2 <<= 1;
-              crc2 &= 0xFF;
+              if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
+              else crc2 >>= 1;
             }
           }
-          crc2 = ((crc2 & 0x0F) << 4) | ((crc2 & 0xF0) >> 4);
-          crc2 = ((crc2 & 0x33) << 2) | ((crc2 & 0xCC) >> 2);
-          crc2 = ((crc2 & 0x55) << 1) | ((crc2 & 0xAA) >> 1);
           char crc2_str[8];
           snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
           std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
