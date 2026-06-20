@@ -3,3 +3,30 @@
 # You can modify this file to suit your needs.
 /.esphome/
 /secrets.yaml
+
+# Python virtualenv
+/esphome_env/
+
+# Log/sniff captures and notes
+*.txt
+
+# Windows "downloaded from internet" metadata (WSL)
+*:Zone.Identifier
+
+# Compiled firmware
+*.bin
+
+# Scratch / experimental config variants
+m5atom-advantage-airPROD.yaml
+m5atomrs485.yaml.old
+m5atomrs485Hardcodedzonenamesbutupdateswork.yaml
+beforefanmodetriedtobeaddedanditgotfuckedupagain.yaml
+zone6_sniffer.yaml
+it worked we changed the study percent.yaml
+
+# Reverse-engineering helper scripts
+check_22.py
+check_sniffed.py
+find_zone_crc.py
+test_crc.py
+verify_crc.py
