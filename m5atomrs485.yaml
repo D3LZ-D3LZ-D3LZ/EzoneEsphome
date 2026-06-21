@@ -132,7 +132,7 @@ uart:
               if (!temp.empty() && millis() - id(last_set_time) > 5000) id(ac_temp) = atof(temp.c_str());
 
               std::string myzone = extract("unitControlTempsSetting");
-              if (!myzone.empty()) {
+              if (!myzone.empty() && millis() - id(last_set_time) > 5000) {
                 int new_myzone = atoi(myzone.c_str());
                 id(ac_myzone) = new_myzone;
                 
@@ -1119,7 +1119,7 @@ select:
           std::string cmd = "setSystemData?unitControlTempsSetting=" + std::to_string(zone_id);
           id(send_ac)->execute(cmd);
           id(ac_myzone) = zone_id;
-          id(last_set_time) = millis();
+          id(select_myzone).publish_state(zone);
 
 button:
   - platform: template
