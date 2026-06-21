@@ -1127,53 +1127,29 @@ button:
           id(rs485_bus).write_str("<U>Ping</U=db>");
 
 interval:
-  - interval: 30s
-    then:
-      - lambda: |
-          id(request_state) = 0;
-
-  - interval: 1s
+  # Poll the AC. getSystemData (mode / power / MyZone) is fetched every other
+  # step so user-facing changes show up fast (~700ms); the 7 zones rotate in
+  # between. 350ms/step keeps each request clear of the previous reply (a full
+  # getSystemData response is ~230ms at 57600 baud). State auto-wraps via % 15.
+  - interval: 350ms
     then:
       - lambda: |
           int state = id(request_state);
-          switch(state) {
-            case 0:
-              id(rs485_bus).write_str("<U>Ping</U=db>");
-              id(request_state) = 1;
-              break;
-            case 1:
-              id(rs485_bus).write_str("<U>getSystemData</U=15>");
-              id(request_state) = 2;
-              break;
-            case 2:
-              id(rs485_bus).write_str("<U>getZoneData?zone=1</U=74>");
-              id(request_state) = 3;
-              break;
-            case 3:
-              id(rs485_bus).write_str("<U>getZoneData?zone=2</U=36>");
-              id(request_state) = 4;
-              break;
-            case 4:
-              id(rs485_bus).write_str("<U>getZoneData?zone=3</U=08>");
-              id(request_state) = 5;
-              break;
-            case 5:
-              id(rs485_bus).write_str("<U>getZoneData?zone=4</U=b2>");
-              id(request_state) = 6;
-              break;
-            case 6:
-              id(rs485_bus).write_str("<U>getZoneData?zone=5</U=8c>");
-              id(request_state) = 7;
-              break;
-            case 7:
-              id(rs485_bus).write_str("<U>getZoneData?zone=6</U=ce>");
-              id(request_state) = 8;
-              break;
-            case 8:
-              id(rs485_bus).write_str("<U>getZoneData?zone=7</U=f0>");
-              id(request_state) = 9;
-              break;
-            case 9:
-              id(request_state) = 0;
-              break;
+          switch (state) {
+            case 0:  id(rs485_bus).write_str("<U>Ping</U=db>"); break;
+            case 1:  id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 2:  id(rs485_bus).write_str("<U>getZoneData?zone=1</U=74>"); break;
+            case 3:  id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 4:  id(rs485_bus).write_str("<U>getZoneData?zone=2</U=36>"); break;
+            case 5:  id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 6:  id(rs485_bus).write_str("<U>getZoneData?zone=3</U=08>"); break;
+            case 7:  id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 8:  id(rs485_bus).write_str("<U>getZoneData?zone=4</U=b2>"); break;
+            case 9:  id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 10: id(rs485_bus).write_str("<U>getZoneData?zone=5</U=8c>"); break;
+            case 11: id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 12: id(rs485_bus).write_str("<U>getZoneData?zone=6</U=ce>"); break;
+            case 13: id(rs485_bus).write_str("<U>getSystemData</U=15>"); break;
+            case 14: id(rs485_bus).write_str("<U>getZoneData?zone=7</U=f0>"); break;
           }
+          id(request_state) = (state + 1) % 15;
