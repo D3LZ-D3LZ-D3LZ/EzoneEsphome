@@ -67,6 +67,13 @@ uart:
             if (log_response.length() > 800) log_response = log_response.substr(0, 800) + "...";
             ESP_LOGI("AC", "RX: %s", log_response.c_str());
 
+            // A set command was accepted -> stop re-sending the pending one.
+            if (!id(pending_cmd).empty() && response.find("<ack>1</ack>") != std::string::npos) {
+              ESP_LOGI("AC", "ACK after %d try(s): %s", id(pending_tries), id(pending_cmd).c_str());
+              id(pending_cmd) = "";
+              id(pending_tries) = 0;
+            }
+
             if (response.find("getSystemData") != std::string::npos) {
               id(debug_system_response) = response;
               
@@ -376,6 +383,18 @@ globals:
   - id: tx_queue
     type: std::vector<std::string>
     restore_value: false
+  # Re-send-until-acked: the AC sometimes never receives a command cleanly on
+  # the shared bus (collision with the other controller -> no ack). We track
+  # the last command and re-queue it until the AC replies with <ack>1</ack>.
+  - id: pending_cmd
+    type: std::string
+    initial_value: "\"\""
+  - id: pending_since
+    type: uint32_t
+    initial_value: "0"
+  - id: pending_tries
+    type: int
+    initial_value: "0"
   - id: aa_cmd_type
     type: int
     initial_value: "0"
@@ -555,6 +574,10 @@ script:
           // rather than firing now and risking a collision with bus traffic.
           id(tx_queue).push_back(framed);
           ESP_LOGI("AC", "QUEUE: %s", framed.c_str());
+          // Track this command so it can be re-sent if the AC never acks it.
+          id(pending_cmd) = framed;
+          id(pending_since) = millis();
+          id(pending_tries) = 1;
           // Start the "ignore stale AC reports" window so the next poll
           // doesn't overwrite this change before the unit has applied it.
           id(last_set_time) = millis();
@@ -1138,6 +1161,25 @@ button:
           id(rs485_bus).write_str("<U>Ping</U=db>");
 
 interval:
+  # Re-send the last command if the AC hasn't acked it within 1.5s (lost to a
+  # bus collision with the other controller). Up to 4 tries, then give up.
+  - interval: 1s
+    then:
+      - lambda: |
+          if (!id(pending_cmd).empty() && millis() - id(pending_since) > 1500) {
+            if (id(pending_tries) < 4) {
+              id(tx_queue).push_back(id(pending_cmd));
+              id(pending_since) = millis();
+              id(pending_tries) += 1;
+              id(last_set_time) = millis();
+              ESP_LOGI("AC", "RETRY %d (no ack): %s", id(pending_tries), id(pending_cmd).c_str());
+            } else {
+              ESP_LOGW("AC", "No ack after 4 tries, giving up: %s", id(pending_cmd).c_str());
+              id(pending_cmd) = "";
+              id(pending_tries) = 0;
+            }
+          }
+
   # Poll the AC. getSystemData (mode / power / MyZone) is fetched every other
   # step so user-facing changes show up fast (~700ms); the 7 zones rotate in
   # between. 350ms/step keeps each request clear of the previous reply (a full
