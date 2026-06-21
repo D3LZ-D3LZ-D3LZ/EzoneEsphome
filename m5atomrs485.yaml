@@ -370,6 +370,12 @@ globals:
   - id: request_state
     type: int
     initial_value: "0"
+  # Outgoing command queue. Commands are framed by send_ac and drained one
+  # per poll tick, so they transmit in the same quiet slot the polls use
+  # instead of colliding with bus traffic when a button is pressed.
+  - id: tx_queue
+    type: std::vector<std::string>
+    restore_value: false
   - id: aa_cmd_type
     type: int
     initial_value: "0"
@@ -545,8 +551,10 @@ script:
           char crc_str[8];
           snprintf(crc_str, sizeof(crc_str), "%02x", crc);
           std::string framed = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "TX: %s", framed.c_str());
-          id(rs485_bus).write_str(framed.c_str());
+          // Queue for transmission on the next poll tick (a quiet bus slot)
+          // rather than firing now and risking a collision with bus traffic.
+          id(tx_queue).push_back(framed);
+          ESP_LOGI("AC", "QUEUE: %s", framed.c_str());
           // Start the "ignore stale AC reports" window so the next poll
           // doesn't overwrite this change before the unit has applied it.
           id(last_set_time) = millis();
@@ -1137,6 +1145,15 @@ interval:
   - interval: 350ms
     then:
       - lambda: |
+          // Transmit a queued user command first (this tick is a quiet slot:
+          // the previous reply has finished). One per tick keeps the bus clean.
+          if (!id(tx_queue).empty()) {
+            std::string framed = id(tx_queue).front();
+            id(tx_queue).erase(id(tx_queue).begin());
+            ESP_LOGI("AC", "TX: %s", framed.c_str());
+            id(rs485_bus).write_str(framed.c_str());
+            return;
+          }
           int state = id(request_state);
           switch (state) {
             case 0:  id(rs485_bus).write_str("<U>Ping</U=db>"); break;
