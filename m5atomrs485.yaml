@@ -523,6 +523,31 @@ text_sensor:
     id: sensor_debug_system
     lambda: return id(debug_system_response);
 
+script:
+  # Centralized RS485 command sender. Frames a command string with the
+  # correct CRC-8 (init 0x00, poly 0xB2 LSB-first right-shift, final XOR
+  # 0xFF) and transmits it. CRC reverse-engineered and verified against 75
+  # real bus packets -- do NOT change these parameters without re-verifying.
+  - id: send_ac
+    parameters:
+      cmd: string
+    then:
+      - lambda: |-
+          uint8_t crc = 0x00;
+          for (char c : cmd) {
+            crc ^= (uint8_t)c;
+            for (int i = 0; i < 8; i++) {
+              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
+              else crc >>= 1;
+            }
+          }
+          crc ^= 0xFF;
+          char crc_str[8];
+          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
+          std::string framed = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
+          ESP_LOGI("AC", "TX: %s", framed.c_str());
+          id(rs485_bus).write_str(framed.c_str());
+
 switch:
   - platform: template
     name: "AC Power"
@@ -530,14 +555,12 @@ switch:
     optimistic: false
     turn_on_action:
       - lambda: |-
-          ESP_LOGI("AC", "Power ON: %s", "<U>setSystemData?airconOnOff=1</U=e3>");
-          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=1</U=e3>");
+          id(send_ac)->execute("setSystemData?airconOnOff=1");
           id(ac_power) = true;
           id(last_set_time) = millis();
     turn_off_action:
       - lambda: |-
-          ESP_LOGI("AC", "Power OFF: %s", "<U>setSystemData?airconOnOff=0</U=dd>");
-          id(rs485_bus).write_str("<U>setSystemData?airconOnOff=0</U=dd>");
+          id(send_ac)->execute("setSystemData?airconOnOff=0");
           id(ac_power) = false;
           id(last_set_time) = millis();
 
@@ -548,35 +571,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=1&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=1&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
 
   - platform: template
     name: "${zone2_name}"
@@ -585,35 +584,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=2&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=2&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
 
   - platform: template
     name: "${zone3_name}"
@@ -622,35 +597,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=3&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=3&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
 
   - platform: template
     name: "${zone4_name}"
@@ -659,35 +610,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=4&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=4&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
 
   - platform: template
     name: "${zone5_name}"
@@ -696,35 +623,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=5&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=5&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
   
   - platform: template
     name: "${zone6_name}"
@@ -733,35 +636,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=6&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=6&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
  
   - platform: template
     name: "${zone7_name}"
@@ -770,35 +649,11 @@ switch:
     turn_on_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=7&zoneSetting=1";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
     turn_off_action:
       - lambda: |-
           std::string cmd = "setZoneData?zone=7&zoneSetting=0";
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
 cover:
   - platform: template
     name: "${zone1_name}"
@@ -811,58 +666,18 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=1&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone1 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             std::string cmd2 = "setZoneData?zone=1&userPercentSetting=100";
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone1: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone1 zoneSetting again: %s", formatted1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=1&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone1 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
 
   - platform: template
     name: "${zone2_name}"
@@ -875,53 +690,14 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=2&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone2 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             std::string cmd2 = "setZoneData?zone=2&userPercentSetting=100";
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone2: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=2&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone2 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -932,42 +708,15 @@ cover:
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=2&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone2 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=2&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone2: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone2 zoneSetting again: %s CRC=d4", cmd1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
 
   - platform: template
     name: "${zone3_name}"
@@ -980,53 +729,14 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=3&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone3 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             std::string cmd2 = "setZoneData?zone=3&userPercentSetting=100";
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone3: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=3&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                 else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone3 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -1037,42 +747,15 @@ cover:
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=3&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone3 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=3&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone3: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone3 zoneSetting again: %s CRC=d4", cmd1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
 
   - platform: template
     name: "${zone7_name}"
@@ -1085,53 +768,14 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=7&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone7 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             std::string cmd2 = "setZoneData?zone=7&userPercentSetting=100";
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone7: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=7&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                 else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone7 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -1142,42 +786,15 @@ cover:
             int percent = static_cast<int>(round(pos * 100 / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=7&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone7 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=7&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone7: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone7 zoneSetting again: %s CRC=d4", cmd1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
 
   - platform: template
     name: "${zone4_name}"
@@ -1193,53 +810,14 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=4&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone4 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
              std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string(id(zone4_max));
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone4: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=4&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                 else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone4 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -1250,42 +828,15 @@ cover:
               int percent = static_cast<int>(round(pos * id(zone4_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=4&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone4 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone4: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone4 zoneSetting again: %s CRC=d4", cmd1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
 
   - platform: template
     name: "${zone5_name}"
@@ -1301,53 +852,14 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=5&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone5 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
              std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string(id(zone5_max));
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone5: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=5&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                 else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone5 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -1358,42 +870,15 @@ cover:
               int percent = static_cast<int>(round(pos * id(zone5_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=5&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone5 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=5&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-             ESP_LOGI("AC", "zone5: %s", formatted2.c_str());
-             id(rs485_bus).write_str(formatted2.c_str());
+             id(send_ac)->execute(cmd2);
              
              
              // Send zoneSetting=1 again to keep zone enabled
-             ESP_LOGI("AC", "zone5 zoneSetting again: %s CRC=d4", cmd1.c_str());
-             id(rs485_bus).write_str(formatted1.c_str());
+             id(send_ac)->execute(cmd1);
 
   - platform: template
     name: "${zone6_name}"
@@ -1409,57 +894,17 @@ cover:
       then:
         - lambda: |-
             std::string cmd1 = "setZoneData?zone=6&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone6 setting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
-            ESP_LOGI("AC", "zone6 setting again: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             std::string cmd2 = "setZoneData?zone=6&userPercentSetting=" + to_string(id(zone6_max));
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone6: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
     close_action:
       then:
         - lambda: |-
             std::string cmd = "setZoneData?zone=6&zoneSetting=0";
-            uint8_t crc = 0x00;
-            for (char c : cmd) {
-              crc ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-                 else crc >>= 1;
-              }
-            }
-            crc ^= 0xFF;
-            char crc_str[8];
-            snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-            std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-            ESP_LOGI("AC", "zone6 close: %s", formatted.c_str());
-            id(rs485_bus).write_str(formatted.c_str());
+            id(send_ac)->execute(cmd);
     position_action:
       then:
         - lambda: |-
@@ -1470,41 +915,14 @@ cover:
             int percent = static_cast<int>(round(pos * id(zone6_max) / 5.0)) * 5;
             
             std::string cmd1 = "setZoneData?zone=6&zoneSetting=1";
-            uint8_t crc1 = 0x00;
-            for (char c : cmd1) {
-              crc1 ^= (uint8_t)c;
-              for (int i = 0; i < 8; i++) {
-                if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-                else crc1 >>= 1;
-              }
-            }
-            crc1 ^= 0xFF;
-            char crc1_str[8];
-            snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-            std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
-            ESP_LOGI("AC", "zone6 zoneSetting: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
             
             
             std::string cmd2 = "setZoneData?zone=6&userPercentSetting=" + to_string(percent);
-            uint8_t crc2 = 0x00;
-            for (char c : cmd2) {
-              crc2 ^= static_cast<uint8_t>(c);
-              for (int i = 0; i < 8; i++) {
-                if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-                else crc2 >>= 1;
-              }
-            }
-            crc2 ^= 0xFF;
-            char crc2_str[8];
-            snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-            std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
-            ESP_LOGI("AC", "zone6: %s", formatted2.c_str());
-            id(rs485_bus).write_str(formatted2.c_str());
+            id(send_ac)->execute(cmd2);
             
             
-            ESP_LOGI("AC", "zone6 zoneSetting again: %s", formatted1.c_str());
-            id(rs485_bus).write_str(formatted1.c_str());
+            id(send_ac)->execute(cmd1);
 
 number:
   - platform: template
@@ -1522,19 +940,7 @@ number:
           std::string cmd = "setSystemData?centralDesiredTemp=" + std::string(temp_str);
           id(ac_temp) = x;
           id(last_set_time) = millis();
-          uint8_t crc = 0;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(central_number_target_temp).publish_state(x);
 
   - platform: template
@@ -1550,20 +956,7 @@ number:
           char temp_str[16];
           snprintf(temp_str, sizeof(temp_str), "%.1f", x);
           std::string cmd = std::string("setZoneData?zone=1&desiredTemp=") + temp_str;
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting zone1 temp to %.1f: %s", x, formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(zone1_desired) = x;
           id(last_set_time) = millis();
           id(number_zone1_temp).publish_state(x);
@@ -1581,20 +974,7 @@ number:
           char temp_str[16];
           snprintf(temp_str, sizeof(temp_str), "%.1f", x);
           std::string cmd = std::string("setZoneData?zone=2&desiredTemp=") + temp_str;
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting zone2 temp to %.1f: %s", x, formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(zone2_desired) = x;
           id(last_set_time) = millis();
           id(number_zone2_temp).publish_state(x);
@@ -1612,20 +992,7 @@ number:
           char temp_str[16];
           snprintf(temp_str, sizeof(temp_str), "%.1f", x);
           std::string cmd = std::string("setZoneData?zone=3&desiredTemp=") + temp_str;
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting zone3 temp to %.1f: %s", x, formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(zone3_desired) = x;
           id(last_set_time) = millis();
           id(number_zone3_temp).publish_state(x);
@@ -1643,20 +1010,7 @@ number:
           char temp_str[16];
           snprintf(temp_str, sizeof(temp_str), "%.1f", x);
           std::string cmd = std::string("setZoneData?zone=7&desiredTemp=") + temp_str;
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting zone7 temp to %.1f: %s", x, formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(zone7_desired) = x;
           id(last_set_time) = millis();
           id(number_zone7_temp).publish_state(x);
@@ -1674,38 +1028,12 @@ number:
           id(number_zone4_percent).publish_state(x);
           
           std::string cmd1 = "setZoneData?zone=4&zoneSetting=1";
-          uint8_t crc1 = 0x00;
-          for (char c : cmd1) {
-            crc1 ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc1 & 0x01) crc1 = (crc1 >> 1) ^ 0xB2;
-              else crc1 >>= 1;
-            }
-          }
-          crc1 ^= 0xFF;
-          char crc1_str[8];
-          snprintf(crc1_str, sizeof(crc1_str), "%02x", crc1);
-          std::string formatted1 = "<U>" + cmd1 + "</U=" + std::string(crc1_str) + ">";
           
-          ESP_LOGI("AC", "Opening zone4: %s", formatted1.c_str());
-          id(rs485_bus).write_str(formatted1.c_str());
+          id(send_ac)->execute(cmd1);
           
           std::string cmd2 = "setZoneData?zone=4&userPercentSetting=" + to_string((int)x);
-          uint8_t crc2 = 0;
-          for (char c : cmd2) {
-            crc2 ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc2 & 0x01) crc2 = (crc2 >> 1) ^ 0xB2;
-              else crc2 >>= 1;
-            }
-          }
-          crc2 ^= 0xFF;
-          char crc2_str[8];
-          snprintf(crc2_str, sizeof(crc2_str), "%02x", crc2);
-          std::string formatted2 = "<U>" + cmd2 + "</U=" + std::string(crc2_str) + ">";
           
-          ESP_LOGI("AC", "Setting zone4 percent to %d: %s", (int)x, formatted2.c_str());
-          id(rs485_bus).write_str(formatted2.c_str());
+          id(send_ac)->execute(cmd2);
 
 select:
   - platform: template
@@ -1725,20 +1053,7 @@ select:
           else if (x == "Fan") mode = 3;
           else if (x == "Dry") mode = 5;
           std::string cmd = "setSystemData?mode=" + to_string(mode);
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting AC mode to %s: %s", x.c_str(), formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(last_set_time) = millis();
 
   - platform: template
@@ -1759,20 +1074,7 @@ select:
           else if (mode == "High") speed = 3;
           else if (mode == "Auto") speed = 4;
           std::string cmd = "setSystemData?fanSpeed=" + to_string(speed);
-          uint8_t crc = 0x00;
-          for (char c : cmd) {
-            crc ^= (uint8_t)c;
-            for (int i = 0; i < 8; i++) {
-              if (crc & 0x01) crc = (crc >> 1) ^ 0xB2;
-              else crc >>= 1;
-            }
-          }
-          crc ^= 0xFF;
-          char crc_str[8];
-          snprintf(crc_str, sizeof(crc_str), "%02x", crc);
-          std::string formatted = "<U>" + cmd + "</U=" + std::string(crc_str) + ">";
-          ESP_LOGI("AC", "Setting fan speed to %s: %s", mode.c_str(), formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          id(send_ac)->execute(cmd);
           id(last_set_time) = millis();
 
   - platform: template
@@ -1811,23 +1113,8 @@ select:
           else if (zone == "${zone5_name}") zone_id = 5;
           else if (zone == "${zone6_name}") zone_id = 6;
           else if (zone == "${zone7_name}") zone_id = 7;
-          // Use hardcoded CRCs from sniffed data
-          std::string cmd;
-          std::string crc_str;
-          switch(zone_id) {
-            case 0: cmd = "setSystemData?unitControlTempsSetting=0"; crc_str = "22"; break;
-            case 1: cmd = "setSystemData?unitControlTempsSetting=1"; crc_str = "1c"; break;
-            case 2: cmd = "setSystemData?unitControlTempsSetting=2"; crc_str = "5e"; break;
-            case 3: cmd = "setSystemData?unitControlTempsSetting=3"; crc_str = "60"; break;
-            case 4: cmd = "setSystemData?unitControlTempsSetting=4"; crc_str = "da"; break;
-            case 5: cmd = "setSystemData?unitControlTempsSetting=5"; crc_str = "e4"; break;
-            case 6: cmd = "setSystemData?unitControlTempsSetting=6"; crc_str = "a6"; break;
-            case 7: cmd = "setSystemData?unitControlTempsSetting=7"; crc_str = "98"; break;
-            default: cmd = ""; crc_str = "00"; break;
-          }
-          std::string formatted = "<U>" + cmd + "</U=" + crc_str + ">";
-          ESP_LOGI("AC", "Setting MyZone to %s: %s", zone.c_str(), formatted.c_str());
-          id(rs485_bus).write_str(formatted.c_str());
+          std::string cmd = "setSystemData?unitControlTempsSetting=" + std::to_string(zone_id);
+          id(send_ac)->execute(cmd);
           id(ac_myzone) = zone_id;
           id(last_set_time) = millis();
 
